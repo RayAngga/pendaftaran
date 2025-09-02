@@ -1,6 +1,6 @@
+// assets/js/payment.js
 import { el, $ } from "./utils.js";
-import { state, saveRegs } from "./state.js";
-import { renderStats } from "./admin.js";
+import { state } from "./state.js";
 import { findTicket } from "./ticket.js";
 import { api } from "./api.js";
 
@@ -31,6 +31,13 @@ export async function findUnpaidByWA(){
     msg.className="text-sm text-red-400"; msg.textContent="Gagal mencari: " + e.message;
   }
 }
+
+export function genCode(){
+  const p=Math.random().toString(36).slice(2,6).toUpperCase();
+  const t=Date.now().toString().slice(-5);
+  return `RMPMABA-${p}${t}`;
+}
+
 export function submitProof(){
   const msg = el("pay-msg");
   if(!state.current){ msg.className="text-sm text-red-400"; msg.textContent="Cari pendaftar dulu (berdasarkan WA)."; return; }
@@ -41,12 +48,11 @@ export function submitProof(){
     try{
       const dataUrl = reader.result;
       await api.submitProof(state.current.id || state.current.code || state.current.wa, dataUrl);
-      const { rows } = await api.list(); state.regs = rows; saveRegs();
-      el("pay-data").classList.add("hidden");
       msg.className="text-sm text-emerald-300"; msg.textContent="Bukti diterima. Kode & QR dibuat.";
+      // Ambil ulang record via endpoint publik
+      const { rec } = await api.getTicket(state.current.wa);
       document.getElementById("btn-ticket").click();
-      const updated = rows.find(r => r.wa === state.current.wa);
-      document.getElementById("t-search").value = updated?.code || "";
+      document.getElementById("t-search").value = (rec && rec.code) || "";
       await findTicket();
     }catch(e){
       msg.className="text-sm text-red-400"; msg.textContent="Upload gagal: " + e.message;
