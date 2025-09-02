@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>RIUNGMUNGPULUNG MABA — Meet & Greet</title>
+
+  <!-- Tailwind CDN -->
+  <script>tailwind=window.tailwind||{};tailwind.config={darkMode:'class'};</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Vendor libs (UMD, global) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <link rel="stylesheet" href="./assets/css/styles.css">
+</head>
+<body class="min-h-screen">
+  <header class="sticky top-0 z-30 bg-slate-950/70 backdrop-blur border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-3 md:px-4 py-2 md:py-3 flex items-center gap-2 md:gap-3">
+      <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[var(--brand)] to-[var(--accent)]"></div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-base md:text-xl font-extrabold tracking-tight truncate">RIUNGMUNGPULUNG MABA</h1>
+        <p class="text-[11px] md:text-xs text-slate-400 truncate">Pendaftaran • Pembayaran • E-Tiket (QR) • Check-in</p>
+      </div>
+      <div class="flex items-center gap-1 md:gap-2">
+        <button id="btn-register" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm">Daftar</button>
+        <button id="btn-pay" class="px-3 py-1.5 rounded-lg hover:bg-white/10 text-sm">Pembayaran</button>
+        <button id="btn-ticket" class="px-3 py-1.5 rounded-lg hover:bg-white/10 text-sm">E-Tiket</button>
+        <button id="btn-admin" class="px-3 py-1.5 rounded-lg hover:bg-white/10 text-sm">Admin</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-8 md:space-y-10">
+    <section class="rounded-2xl p-4 md:p-8 bg-gradient-to-br from-[var(--brand)]/20 via-slate-900 to-[var(--accent)]/20 border border-white/10">
+      <h2 class="text-xl md:text-3xl font-extrabold mb-2">Meet & Greet — RIUNGMUNGPULUNG MABA</h2>
+      <ol class="text-slate-300 text-sm list-decimal list-inside space-y-1">
+        <li>Isi form pendaftaran</li>
+        <li>Transfer ke nomor rekening yang tertera</li>
+        <li>Upload bukti transfer → otomatis keluar <b>QR/Kode</b></li>
+        <li>Tunjukkan QR saat check-in</li>
+      </ol>
+    </section>
+
+    <!-- REGISTER -->
+    <section id="section-register" class="space-y-4 md:space-y-6">
+      <h3 class="text-lg md:text-xl font-bold">Form Pendaftaran</h3>
+      <form id="form-register" class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 bg-white/5 p-4 md:p-5 rounded-xl border border-white/10">
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Nama Lengkap *</label>
+          <input id="f-nama" required class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Nama lengkap">
+        </div>
+
+        <div>
+          <label class="block text-sm mb-1">Fakultas</label>
+          <input id="f-fakultas" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Fakultas">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Prodi</label>
+          <input id="f-prodi" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Program studi">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">No. WhatsApp *</label>
+          <input id="f-wa" required inputmode="numeric" pattern="[0-9+ ]*" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="08xxxx">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Pesanan Makanan</label>
+          <select id="f-makanan" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10"></select>
+          <p class="text-[11px] text-slate-400 mt-1">Edit opsi di variabel <code>FOOD_OPTIONS</code>.</p>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Domisili</label>
+          <input id="f-domisili" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Kota/Kabupaten">
+        </div>
+
+        <div class="md:col-span-2 flex items-center gap-2">
+          <input id="f-consent" type="checkbox" required class="size-4">
+          <label for="f-consent" class="text-sm text-slate-300">Saya setuju dengan ketentuan acara.</label>
+        </div>
+        <div class="md:col-span-2 flex gap-2 md:gap-3">
+          <button class="px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold" type="submit">Daftar</button>
+          <button id="btn-reset-form" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20" type="button">Reset</button>
+        </div>
+        <p id="register-msg" class="md:col-span-2 text-sm"></p>
+      </form>
+      <p id="kuota-info" class="text-xs text-slate-400"></p>
+    </section>
+
+    <!-- PAYMENT -->
+    <section id="section-pay" class="hidden space-y-4 md:space-y-6">
+      <h3 class="text-lg md:text-xl font-bold">Pembayaran & Unggah Bukti</h3>
+
+      <div class="rounded-xl border border-white/10 p-4 md:p-5 bg-white/5">
+        <h4 class="font-semibold">Nomor Rekening / E-Wallet</h4>
+        <div id="bank-box" class="mt-2 p-3 rounded-lg bg-black/30 font-mono text-sm">
+          <div><b>Bank:</b> <span id="bank-name"></span></div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span><b>No. Rek:</b> <span id="bank-rek"></span></span>
+            <button id="copy-rek" class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-xs">Salin</button>
+          </div>
+          <div><b>Atas Nama:</b> <span id="bank-owner"></span></div>
+          <div><b>Nominal:</b> <span id="bank-amount"></span></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Setelah transfer, unggah bukti (jpg/png/pdf) untuk mendapatkan QR/kode pendaftaran.</p>
+      </div>
+
+      <div class="rounded-xl border border-white/10 p-4 md:p-5 bg-white/5">
+        <div class="grid md:grid-cols-[1fr_auto] gap-3 items-end">
+          <div>
+            <label class="block text-sm mb-1">Cari data pendaftar (Nomor WA)</label>
+            <input id="pay-wa" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="08xxxx">
+          </div>
+          <button id="pay-find" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20">Tampilkan</button>
+        </div>
+        <div id="pay-data" class="mt-3 text-sm text-slate-300 hidden"></div>
+
+        <div class="mt-4">
+          <label class="block text-sm mb-1">Unggah Bukti Transfer</label>
+          <input id="pay-proof" type="file" accept="image/*,application/pdf" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10">
+          <button id="pay-submit" class="mt-3 px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold w-full md:w-auto">Kirim Bukti & Buat QR</button>
+          <p id="pay-msg" class="text-sm mt-2"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TICKET -->
+    <section id="section-ticket" class="hidden space-y-4 md:space-y-6">
+      <h3 class="text-lg md:text-xl font-bold">E-Tiket Peserta</h3>
+
+      <div class="bg-white/5 p-4 md:p-5 rounded-xl border border-white/10">
+        <div class="flex flex-col md:flex-row gap-3 md:gap-4 items-end md:items-center">
+          <div class="flex-1">
+            <label class="block text-sm mb-1">Masukkan Kode Pendaftaran atau Nomor WA</label>
+            <input id="t-search" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="RMPMABA-XXXX atau 08xxxx">
+          </div>
+          <button id="t-find" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 w-full md:w-auto">Cari Tiket</button>
+        </div>
+      </div>
+
+      <div id="ticket-card" class="hidden">
+        <div id="print-area" class="ticket theme-aurora">
+          <div class="ticket-inner">
+            <div>
+              <div class="title">RIUNGMUNGPULUNG MABA — E-Ticket</div>
+              <p id="t-name" class="mt-1 opacity-90"></p>
+              <div class="mt-3 meta text-sm space-y-1">
+                <div><b>Fakultas:</b> <span id="t-fakultas"></span></div>
+                <div><b>Prodi:</b> <span id="t-prodi"></span></div>
+                <div><b>No. WA:</b> <span id="t-wa"></span></div>
+                <div><b>Pesanan:</b> <span id="t-makanan"></span></div>
+                <div><b>Domisili:</b> <span id="t-domisili"></span></div>
+
+                <div class="pt-1"><b>Kode:</b> <span id="t-code"></span></div>
+                <div><b>Status:</b> <span id="t-status" class="badge warn">Terdaftar</span></div>
+                <div><b>Bayar:</b> <span id="t-paid" class="badge">Belum</span></div>
+              </div>
+            </div>
+            <div class="flex flex-col items-center gap-2">
+              <div class="qr-wrap">
+                <img id="qr-img" alt="QR" style="display:none" />
+                <canvas id="qr-canvas" width="180" height="180" style="display:none"></canvas>
+              </div>
+              <button id="btn-download-qr" class="px-3 py-1.5 rounded bg-black/20 hover:bg-black/30 text-sm w-full md:w-auto">Unduh QR</button>
+            </div>
+          </div>
+          <div class="stripe"></div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button id="btn-print" class="px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold">Print Tiket</button>
+          <button id="btn-save-png" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20">Unduh Tiket (PNG)</button>
+        </div>
+      </div>
+      <p id="ticket-msg" class="text-sm"></p>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="section-admin" class="hidden space-y-4 md:space-y-6">
+      <h3 class="text-lg md:text-xl font-bold">Admin Panel</h3>
+
+      <div id="admin-login" class="bg-white/5 p-4 md:p-5 rounded-xl border border-white/10">
+        <div class="flex flex-col md:flex-row gap-3 items-end md:items-center">
+          <div class="flex-1">
+            <label class="block text-sm mb-1">Passcode Admin</label>
+            <input id="admin-pass" type="password" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="••••••">
+          </div>
+          <button id="admin-enter" class="px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold w-full md:w-auto">Masuk</button>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Passcode divalidasi di server (tidak tersimpan di browser).</p>
+      </div>
+
+      <div id="admin-area" class="hidden space-y-6">
+        <div class="grid md:grid-cols-3 gap-3 md:gap-4">
+          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
+            <div class="text-sm text-slate-400">Total Terdaftar</div>
+            <div id="stat-total" class="text-2xl font-extrabold">0</div>
+          </div>
+          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
+            <div class="text-sm text-slate-400">Total Hadir</div>
+            <div id="stat-hadir" class="text-2xl font-extrabold">0</div>
+          </div>
+          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
+            <div class="text-sm text-slate-400">Sisa Kuota</div>
+            <div id="stat-kuota" class="text-2xl font-extrabold">0</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-end">
+          <input id="admin-search" class="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Cari nama/fakultas/prodi/WA/pesanan/domisili...">
+          <div class="flex gap-2">
+            <button id="admin-export" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20">Export CSV</button>
+            <button id="admin-reset" class="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600">Reset Semua Data (lokal)</button>
+          </div>
+        </div>
+
+        <div class="overflow-auto rounded-xl border border-white/10">
+          <table class="w-full text-sm">
+            <thead class="bg-white/5 text-slate-300">
+              <tr>
+                <th class="text-left px-3 py-2">Kode</th>
+                <th class="text-left px-3 py-2">Nama</th>
+                <th class="text-left px-3 py-2">Fakultas</th>
+                <th class="text-left px-3 py-2">Prodi</th>
+                <th class="text-left px-3 py-2">No. WA</th>
+                <th class="text-left px-3 py-2">Pesanan</th>
+                <th class="text-left px-3 py-2">Domisili</th>
+                <th class="text-left px-3 py-2">Bayar</th>
+                <th class="text-left px-3 py-2">Hadir</th>
+                <th class="text-left px-3 py-2">Bukti</th>
+                <th class="text-left px-3 py-2">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="admin-tbody" class="divide-y divide-white/5"></tbody>
+          </table>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-3 md:gap-4">
+          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
+            <h4 class="font-semibold mb-2">Scan QR (Check-in)</h4>
+            <video id="scan-video" class="w-full" playsinline muted></video>
+            <canvas id="scan-canvas" class="hidden"></canvas>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button id="scan-start" class="px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold">Mulai Kamera</button>
+              <button id="scan-stop" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20">Stop</button>
+            </div>
+            <p id="scan-msg" class="text-sm mt-2"></p>
+          </div>
+          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
+            <h4 class="font-semibold mb-2">Info Hasil Scan</h4>
+            <div id="scan-result" class="text-sm text-slate-300">Belum ada.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-3 md:px-4 pb-10 text-xs text-slate-400">
+    &copy; <span id="year"></span> RIUNGMUNGPULUNG MABA.
+  </footer>
+
+  <script type="module" src="./assets/js/main.js"></script>
+</body>
+</html>

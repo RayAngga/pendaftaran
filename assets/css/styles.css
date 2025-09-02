@@ -1,0 +1,40 @@
+:root{ --brand:#7c3aed; --accent:#06b6d4; }
+body{ background:#0b1220; color:#e5e7eb; }
+@media print{
+  body *{visibility:hidden!important;}
+  #print-area,#print-area *{visibility:visible!important;}
+  #print-area{position:fixed; inset:0}
+}
+.ticket{ position:relative; border-radius:18px; padding:22px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.25) }
+.ticket .ticket-inner{ display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center }
+.ticket .title{ font-weight:800; letter-spacing:.3px; font-size:clamp(16px,2vw+10px,22px) }
+#t-name{ font-size:clamp(15px,2vw+8px,20px); font-weight:700 }
+.ticket .meta b{ color:#e2e8f0 }
+.ticket .meta{ color:#cbd5e1 }
+.ticket .badge{ padding:2px 8px; border-radius:8px; font-size:12px; display:inline-block }
+.ticket .qr-wrap{ background:#fff; border-radius:14px; padding:10px; box-shadow:0 6px 24px rgba(15,23,42,.35) }
+.ticket .qr-wrap img,.ticket .qr-wrap canvas{ width:clamp(120px,30vw,180px); height:clamp(120px,30vw,180px); display:block }
+.ticket .stripe{ position:absolute; left:0; right:0; bottom:0; height:8px;
+  background:linear-gradient(90deg,#22d3ee,#a78bfa,#f472b6,#22d3ee) }
+.theme-aurora{ color:#e5e7eb;
+  background: radial-gradient(900px 900px at 85% -10%, rgba(99,102,241,1) 0%, rgba(99,102,241,0) 45%),
+              radial-gradient(900px 900px at -10% 110%, rgba(34,211,238,1) 0%, rgba(34,211,238,0) 40%),
+              linear-gradient(135deg,#0b1220 0%, #111827 100%); }
+.theme-aurora .title{ color:#f8fafc }
+.theme-aurora .badge.ok{ background:rgba(16,185,129,.18); color:#86efac }
+.theme-aurora .badge.warn{ background:rgba(234,179,8,.2); color:#fde68a }
+.theme-sunset{ color:#0f172a;
+  background: radial-gradient(800px 800px at 10% -10%, rgba(253,186,116,1) 0%, rgba(253,186,116,0) 40%),
+              radial-gradient(800px 800px at 110% 110%, rgba(244,114,182,1) 0%, rgba(244,114,182,0) 45%),
+              linear-gradient(135deg,#fff7ed 0%, #ffe4e6 100%); }
+.theme-sunset .title{ color:#111827 }
+.theme-sunset .badge.ok{ background:#dcfce7; color:#166534 }
+.theme-sunset .badge.warn{ background:#fef3c7; color:#92400e }
+.theme-mint{ color:#064e3b;
+  background: radial-gradient(900px 900px at -10% 0%, rgba(110,231,183,1) 0%, rgba(110,231,183,0) 40%),
+              radial-gradient(900px 900px at 110% 100%, rgba(125,211,252,1) 0%, rgba(125,211,252,0) 45%),
+              linear-gradient(135deg,#ecfeff 0%, #e6fffb 100%); }
+.theme-mint .title{ color:#022c22 }
+.theme-mint .badge.ok{ background:#d1fae5; color:#065f46 }
+.theme-mint .badge.warn{ background:#fee2e2; color:#b91c1c }
+#scan-video{ aspect-ratio:16/9; object-fit:cover; background:#000; border-radius:12px }
