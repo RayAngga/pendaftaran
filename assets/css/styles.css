@@ -1,27 +1,114 @@
+:root{
+  --brand:#22d3ee;
+  --accent:#a78bfa;
+}
 
-:root{ --brand:#22d3ee; --accent:#a78bfa; }
-*{box-sizing:border-box}
-.section{transition:opacity .18s ease, transform .18s ease}
-.section.hidden{opacity:0;transform:translateY(8px);display:none}
-.badge{display:inline-block;padding:.125rem .5rem;border-radius:.5rem;font-size:.75rem;background:#0b1220}
-.badge.ok{background:rgba(16,185,129,.18);color:#a7f3d0}
-.badge.warn{background:rgba(251,191,36,.18);color:#fde68a}
-.ticket{position:relative;border-radius:16px;border:1px dashed rgba(255,255,255,.2);background:linear-gradient(135deg,rgba(34,211,238,.07),rgba(167,139,250,.07));overflow:hidden}
-.ticket .stripe{position:absolute;inset:auto 0 0 0;height:6px;background:linear-gradient(90deg,var(--brand),var(--accent))}
-.ticket .ticket-inner{display:grid;grid-template-columns:1fr 200px;gap:16px;padding:20px}
-.ticket .title{font-weight:800;font-size:20px}
-.ticket .meta{color:#cbd5e1}
-.qr-wrap{width:180px;height:180px;display:grid;place-items:center;border-radius:12px;background:#fff;border:1px solid rgba(255,255,255,.08)}
-.skeleton{background:linear-gradient(90deg,#1f2937 0,#334155 50%,#1f2937 100%);background-size:200% 100%;border-radius:8px;animation:skeleton 1.2s ease-in-out infinite}
-@keyframes skeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.segmented{width:22px;height:22px;border-radius:50%;background:conic-gradient(from 0deg, rgba(34,211,238,.9) 0 12%, transparent 12% 25%);-webkit-mask:radial-gradient(farthest-side,transparent 55%,#000 56%);mask:radial-gradient(farthest-side,transparent 55%,#000 56%);animation:spin 1s linear infinite}
-.segmented.large{width:56px;height:56px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;z-index:60}
-.overlay-box{width:min(92vw,460px);border-radius:16px;padding:24px;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
-.popup{position:fixed;inset:0;display:grid;place-items:center;z-index:70;pointer-events:none}
-.popup-box{width:min(88vw,380px);border-radius:16px;padding:20px;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
-.popup-icon{width:42px;height:42px;border-radius:50%}
-.popup-icon.ok{background:radial-gradient(circle at 30% 30%,#34d399,#065f46)}
-.popup-icon.warn{background:radial-gradient(circle at 30% 30%,#f59e0b,#7c2d12)}
-.popup-icon.err{background:radial-gradient(circle at 30% 30%,#ef4444,#7f1d1d)}
+/* ---------- Base ---------- */
+*{ box-sizing:border-box }
+
+/* Section show/hide anim */
+.section{ transition:opacity .18s ease, transform .18s ease; }
+.section.hidden{ opacity:0; transform:translateY(8px); display:none; }
+
+/* Badges */
+.badge{ display:inline-block; padding:.125rem .5rem; border-radius:.5rem; font-size:.75rem; background:#0b1220; }
+.badge.ok{   background:rgba(16,185,129,.18); color:#a7f3d0; }
+.badge.warn{ background:rgba(251,191,36,.18); color:#fde68a; }
+
+/* ---------- (Legacy) Ticket card HTML mode ---------- */
+.ticket{
+  position:relative;
+  border-radius:16px;
+  border:1px dashed rgba(255,255,255,.2);
+  background:linear-gradient(135deg,rgba(34,211,238,.07),rgba(167,139,250,.07));
+  overflow:hidden;
+}
+.ticket .stripe{ position:absolute; inset:auto 0 0 0; height:6px; background:linear-gradient(90deg,var(--brand),var(--accent)); }
+.ticket .ticket-inner{ display:grid; grid-template-columns:1fr 200px; gap:16px; padding:20px; }
+.ticket .title{ font-weight:800; font-size:20px; }
+.ticket .meta{ color:#cbd5e1; }
+.qr-wrap{
+  width:160px; height:160px;                 /* diperkecil */
+  display:grid; place-items:center;
+  border-radius:12px; background:#fff;
+  border:1px solid rgba(255,255,255,.08);
+}
+
+/* ---------- Canvas Ticket (mode baru) ---------- */
+#ticket-wrap{ text-align:center; }
+#ticket-canvas{
+  display:block;
+  width:100%;
+  max-width:900px;  /* batas lebar di layar besar */
+  height:auto;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+/* ---------- Skeleton / Loading ---------- */
+.skeleton{
+  background:linear-gradient(90deg,#1f2937 0,#334155 50%,#1f2937 100%);
+  background-size:200% 100%;
+  border-radius:8px;
+  animation:skeleton 1.2s ease-in-out infinite;
+}
+@keyframes skeleton{
+  0%{ background-position:200% 0 }
+  100%{ background-position:-200% 0 }
+}
+
+/* ---------- Spinner (overlay) ---------- */
+.segmented{
+  width:22px; height:22px; border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(34,211,238,.9) 0 12%, transparent 12% 25%);
+  -webkit-mask:radial-gradient(farthest-side,transparent 55%,#000 56%);
+  mask:radial-gradient(farthest-side,transparent 55%,#000 56%);
+  animation:spin 1s linear infinite;
+}
+.segmented.large{ width:56px; height:56px; }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+
+/* ---------- Overlay & Popup ---------- */
+.overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:grid; place-items:center; z-index:60; }
+.overlay-box{
+  width:min(92vw,460px);
+  border-radius:16px; padding:24px;
+  background:#0b1220;
+  border:1px solid rgba(255,255,255,.08);
+}
+.popup{ position:fixed; inset:0; display:grid; place-items:center; z-index:70; pointer-events:none; }
+.popup-box{
+  width:min(88vw,380px);
+  border-radius:16px; padding:20px;
+  background:#0b1220;
+  border:1px solid rgba(255,255,255,.08);
+}
+.popup-icon{ width:42px; height:42px; border-radius:50%; }
+.popup-icon.ok{   background:radial-gradient(circle at 30% 30%,#34d399,#065f46); }
+.popup-icon.warn{ background:radial-gradient(circle at 30% 30%,#f59e0b,#7c2d12); }
+.popup-icon.err{  background:radial-gradient(circle at 30% 30%,#ef4444,#7f1d1d); }
+
+/* ---------- Mobile tweaks (≤640px) ---------- */
+@media (max-width:640px){
+  /* Header: judul sejajar ikon, tombol pindah ke baris bawah (sudah di HTML dengan flex-col).
+     Di sini kita pastikan spacing & center rapi. */
+  header .max-w-6xl > .w-full{
+    justify-content:center;
+  }
+
+  /* Pencarian tiket & login admin center (sudah mx-auto di HTML),
+     tambahkan sedikit batas lebar agar tidak terlalu melebar. */
+  #section-ticket .bg-white\/5 > div,
+  #admin-login .max-w-sm{
+    max-width: 28rem;
+    margin-inline: auto;
+  }
+
+  /* Tombol aksi di blok tiket & login full width biar gampang di-tap */
+  #t-find,
+  #t-download,
+  #admin-enter{
+    width:100%;
+  }
+}
