@@ -30,6 +30,11 @@ export function renderTicket(rec){
 }
 export function setTicketMsg(t,c){ const m=el("ticket-msg"); m.className=`text-sm ${c}`; m.textContent=t; }
 export async function downloadTicketPNG(){
+  const paidText=(el('t-paid').textContent||'').toLowerCase();
+  if(!/sudah/.test(paidText)){
+    alert('Unduh hanya untuk peserta yang sudah bayar.');
+    return;
+  }
   const codeText = (el("t-code").textContent || "").trim();
   if(!codeText){ alert("Tiket belum siap."); return; }
   const rec = state.regs.find(r=> r.code===codeText) || {

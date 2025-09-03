@@ -1,5 +1,5 @@
 export const EVENT_CAPACITY = 300;
-export const BANK_INFO = { bankName: "DANA / OVO / GOPAY", rek: "083851116698", owner: "Ranzani Rizky Fadilah", amount: "Rp 25.000.000" };
+export const BANK_INFO = { bankName: "BANK CONTOH / OVO / DANA", rek: "1234 5678 9012", owner: "Nama Panitia", amount: "Rp 25.000" };
 export const FOOD_OPTIONS = [
   { value:"", label:"— Pilih pesanan —" },
   { value:"nasi-kotak-ayam", label:"Nasi kotak ayam" },
