@@ -4,7 +4,7 @@ import { api } from "./api.js";
 
 /* ===================== Helpers ===================== */
 
-// Jaga 0 depan saat tampilkan WA
+// Tampilkan WA dengan awalan 0 terjaga
 function waDisplay(v) {
   let s = String(v || "").replace(/[^\d]/g, "");
   if (!s) return "";
@@ -93,22 +93,47 @@ function drawBadgeRow(ctx, label, text, x, y, { bg = "#10b981", fg = "#0b1220" }
   ctx.fillText(text, rx + padX, y - 6);
 }
 
+/* ================ Skeleton (tanpa hapus tombol) ================ */
+
+function showSkeleton() {
+  const wrap = el("ticket-wrap");
+  if (!wrap) return;
+  let skel = el("ticket-skeleton");
+  if (!skel) {
+    skel = document.createElement("div");
+    skel.id = "ticket-skeleton";
+    skel.className = "skeleton h-64 rounded-2xl mb-4";
+    wrap.insertBefore(skel, wrap.firstChild);
+  }
+  skel.style.display = "block";
+  // sembunyikan canvas saat loading
+  const cv = el("ticket-canvas");
+  if (cv) cv.style.visibility = "hidden";
+}
+
+function hideSkeleton() {
+  const skel = el("ticket-skeleton");
+  if (skel) skel.style.display = "none";
+  const cv = el("ticket-canvas");
+  if (cv) cv.style.visibility = "visible";
+}
+
 /* ================ Render Ticket (Canvas) ================ */
 
 async function renderTicketCard(rec) {
   const wrap = el("ticket-wrap");
   if (!wrap) return null;
 
-  // Siapkan canvas
+  // Siapkan canvas TANPA menghapus isi #ticket-wrap
   let cv = el("ticket-canvas");
   if (!cv) {
     cv = document.createElement("canvas");
     cv.id = "ticket-canvas";
-    wrap.innerHTML = "";
-    wrap.appendChild(cv);
+    // taruh di paling atas, sebelum tombol unduh
+    wrap.insertBefore(cv, wrap.firstChild);
   }
 
-  // Ukuran gambar akhir (pas untuk unduhan PNG tajam)
+  // Ukuran gambar akhir (tajam saat download)
   const W = 1200, H = 680;
   cv.width = W; cv.height = H;
 
@@ -141,8 +166,7 @@ async function renderTicketCard(rec) {
   g.addColorStop(1.00, "#a21caf"); // fuchsia
 
   roundRect(ctx, cardX, cardY, cardW, cardH, 34);
-  ctx.fillStyle = g;
-  ctx.fill();
+  ctx.fillStyle = g; ctx.fill();
   ctx.restore();
 
   // ===== Teks judul: digambar dulu supaya tidak ketabrak panel QR =====
@@ -159,7 +183,7 @@ async function renderTicketCard(rec) {
   ctx.font = "700 34px 'Inter', system-ui";
   ctx.fillText(String(rec.nama || "-"), leftX, y);
 
-  // ===== Panel QR putih (kecil) — posisikan di bawah judul jika perlu =====
+  // ===== Panel QR putih (compact) — posisikan di bawah judul jika perlu =====
   const qrBoxSize = 320;  // panel putih
   const qrInner   = 240;  // ukuran QR di dalam panel
   const qrBoxX = cardX + cardW - qrBoxSize - 40;
@@ -204,7 +228,11 @@ async function renderTicketCard(rec) {
   hidden.value = String(rec.code || rec.id || "ticket");
   wrap.appendChild(hidden);
 
+  // Pastikan wrapper & tombol unduh terlihat dan aktif
   wrap.classList.remove("hidden");
+  const dl = el("t-download");
+  if (dl) { dl.disabled = false; dl.classList.remove("hidden"); }
+
   return cv;
 }
 
@@ -218,22 +246,25 @@ export async function findTicket() {
   const raw = $("#t-search")?.value?.trim();
   if (!raw) { if (msg) msg.textContent = "Masukkan kode atau nomor WA."; return; }
 
-  // Skeleton loading
+  // Tampilkan wrapper + skeleton, tanpa menghapus tombol
   if (wrap) {
     wrap.classList.remove("hidden");
-    wrap.innerHTML = '<div class="skeleton h-64 rounded-2xl"></div>';
+    showSkeleton();
   }
 
   try {
     const { rec } = await api.getTicket(raw);
     if (!rec) {
       if (msg) msg.textContent = "Data tidak ditemukan.";
+      hideSkeleton();
       wrap?.classList.add("hidden");
       return;
     }
     await renderTicketCard(rec);
+    hideSkeleton();
   } catch (e) {
     if (msg) msg.textContent = "Gagal mengambil tiket: " + (e?.message || e);
+    hideSkeleton();
     wrap?.classList.add("hidden");
   }
 }
@@ -241,7 +272,22 @@ export async function findTicket() {
 export function bindTicket() {
   el("t-find")?.addEventListener("click", findTicket);
 
+  // Klik tombol Unduh (binding langsung)
   el("t-download")?.addEventListener("click", () => {
+    const cv = el("ticket-canvas"); if (!cv) return;
+    const code = el("__lastTicketCode")?.value || "ticket";
+    const a = document.createElement("a");
+    a.href = cv.toDataURL("image/png");
+    a.download = `${code}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+
+  // Fallback delegation (kalau tombol baru muncul/diganti di DOM)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest?.("#t-download");
+    if (!btn) return;
     const cv = el("ticket-canvas"); if (!cv) return;
     const code = el("__lastTicketCode")?.value || "ticket";
     const a = document.createElement("a");
