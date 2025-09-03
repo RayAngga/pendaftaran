@@ -1,17 +1,18 @@
+
 import { el, $, showOverlay, hideOverlay, showPopup } from "./utils.js";
-import { state, saveRegs } from "./state.js";
-import { renderStats } from "./admin.js";
-import { findTicket } from "./ticket.js";
+import { state } from "./state.js";
 import { api } from "./api.js";
+import { findTicket } from "./ticket.js";
 
 export async function findUnpaidByWA(){
   const wa = $("#pay-wa").value.trim().replace(/\s/g,'');
-  const msg = el("pay-msg"); msg.textContent="";
+  const msg = el("pay-msg"); msg.textContent = "";
   try{
-    const box = el("pay-data"); box.classList.remove("hidden"); box.innerHTML = '<div class="skeleton h-6 mb-2"></div><div class="skeleton h-6 mb-2"></div><div class="skeleton h-6"></div>';
+    const box = el("pay-data");
+    box.classList.remove("hidden");
+    box.innerHTML = '<div class="skeleton h-6 mb-2"></div><div class="skeleton h-6 mb-2"></div><div class="skeleton h-6"></div>';
     const { rec } = await api.findByWA(wa);
-
-    if(!rec){ box.classList.add("hidden"); msg.className="text-sm text-red-400"; msg.textContent="Data tidak ditemukan."; return; }
+    if (!rec) { box.classList.add("hidden"); msg.className="text-sm text-red-400"; msg.textContent="Data tidak ditemukan."; return; }
     state.current = rec; box.classList.remove("hidden");
     box.innerHTML = `
       <div><b>Nama:</b> ${rec.nama}</div>
@@ -24,14 +25,17 @@ export async function findUnpaidByWA(){
       ${Number(rec.paid)&&rec.code?`<div><b>Kode:</b> ${rec.code}</div>`:""}
     `;
     if(Number(rec.paid) && rec.code){
-      document.getElementById("btn-ticket").click();
-      document.getElementById("t-search").value = rec.code;
-      await findTicket();
+      sessionStorage.setItem("lastTicketQuery", rec.code);
+      document.getElementById("btn-ticket")?.click();
+      setTimeout(async () => {
+        const inp = document.getElementById("t-search");
+        if (inp) inp.value = rec.code;
+        await findTicket();
+      }, 120);
     }
-  }catch(e){
-    msg.className="text-sm text-red-400"; msg.textContent="Gagal mencari: " + e.message;
-  }
+  }catch(e){ msg.className="text-sm text-red-400"; msg.textContent="Gagal mencari: " + e.message; }
 }
+
 export function submitProof(){
   const msg = el("pay-msg");
   if(!state.current){ msg.className="text-sm text-red-400"; msg.textContent="Cari pendaftar dulu (berdasarkan WA)."; return; }
@@ -42,19 +46,34 @@ export function submitProof(){
     try{
       const dataUrl = reader.result;
       showOverlay("Mengunggah bukti…","Memproses & membuat QR",8000);
-      await api.submitProof(state.current.id || state.current.code || state.current.wa, dataUrl);
-      // removed admin-only list refresh
+      const res = await api.submitProof(state.current.id || state.current.code || state.current.wa, dataUrl);
+      const newCode = res?.code || state.current.code || "";
+      state.current.paid = 1; if (newCode) state.current.code = newCode;
       el("pay-data").classList.add("hidden");
       hideOverlay();
       msg.className="text-sm text-emerald-300"; msg.textContent="Bukti diterima. Kode & QR dibuat.";
       showPopup("ok","Bukti diterima","Kode & QR dibuat");
-      document.getElementById("btn-ticket").click();
-      const updated = rows.find(r => r.wa === state.current.wa);
-      document.getElementById("t-search").value = updated?.code || "";
-      await findTicket();
+      const lastQ = newCode || state.current.wa || "";
+      if (lastQ) sessionStorage.setItem("lastTicketQuery", lastQ);
+      document.getElementById("btn-ticket")?.click();
+      setTimeout(async () => {
+        const inp = document.getElementById("t-search");
+        if (inp) inp.value = lastQ;
+        await findTicket();
+      }, 120);
     }catch(e){
-      msg.className="text-sm text-red-400"; msg.textContent="Upload gagal: " + e.message;
+      hideOverlay(); msg.className="text-sm text-red-400"; msg.textContent="Upload gagal: " + e.message;
     }
   };
   reader.readAsDataURL(file);
+}
+
+export function bindPayment(){
+  el("bank-name").textContent = "BCA";
+  el("bank-rek").textContent = "1234567890";
+  el("bank-owner").textContent = "Panitia RMP MABA";
+  el("bank-amount").textContent = "Rp 25.000";
+  el("pay-find").addEventListener("click", findUnpaidByWA);
+  el("pay-submit").addEventListener("click", submitProof);
+  el("copy-rek").addEventListener("click", ()=>{ const t = el("bank-rek").textContent || ""; navigator.clipboard.writeText(t); });
 }

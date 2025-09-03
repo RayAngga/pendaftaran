@@ -1,61 +1,27 @@
-:root{ --brand:#7c3aed; --accent:#06b6d4; }
-body{ background:#0b1220; color:#e5e7eb; }
-@media print{
-  body *{visibility:hidden!important;}
-  #print-area,#print-area *{visibility:visible!important;}
-  #print-area{position:fixed; inset:0}
-}
-.ticket{ position:relative; border-radius:18px; padding:22px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.25) }
-.ticket .ticket-inner{ display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center }
-.ticket .title{ font-weight:800; letter-spacing:.3px; font-size:clamp(16px,2vw+10px,22px) }
-#t-name{ font-size:clamp(15px,2vw+8px,20px); font-weight:700 }
-.ticket .meta b{ color:#e2e8f0 }
-.ticket .meta{ color:#cbd5e1 }
-.ticket .badge{ padding:2px 8px; border-radius:8px; font-size:12px; display:inline-block }
-.ticket .qr-wrap{ background:#fff; border-radius:14px; padding:10px; box-shadow:0 6px 24px rgba(15,23,42,.35) }
-.ticket .qr-wrap img,.ticket .qr-wrap canvas{ width:clamp(120px,30vw,180px); height:clamp(120px,30vw,180px); display:block }
-.ticket .stripe{ position:absolute; left:0; right:0; bottom:0; height:8px;
-  background:linear-gradient(90deg,#22d3ee,#a78bfa,#f472b6,#22d3ee) }
-.theme-aurora{ color:#e5e7eb;
-  background: radial-gradient(900px 900px at 85% -10%, rgba(99,102,241,1) 0%, rgba(99,102,241,0) 45%),
-              radial-gradient(900px 900px at -10% 110%, rgba(34,211,238,1) 0%, rgba(34,211,238,0) 40%),
-              linear-gradient(135deg,#0b1220 0%, #111827 100%); }
-.theme-aurora .title{ color:#f8fafc }
-.theme-aurora .badge.ok{ background:rgba(16,185,129,.18); color:#86efac }
-.theme-aurora .badge.warn{ background:rgba(234,179,8,.2); color:#fde68a }
-.theme-sunset{ color:#0f172a;
-  background: radial-gradient(800px 800px at 10% -10%, rgba(253,186,116,1) 0%, rgba(253,186,116,0) 40%),
-              radial-gradient(800px 800px at 110% 110%, rgba(244,114,182,1) 0%, rgba(244,114,182,0) 45%),
-              linear-gradient(135deg,#fff7ed 0%, #ffe4e6 100%); }
-.theme-sunset .title{ color:#111827 }
-.theme-sunset .badge.ok{ background:#dcfce7; color:#166534 }
-.theme-sunset .badge.warn{ background:#fef3c7; color:#92400e }
-.theme-mint{ color:#064e3b;
-  background: radial-gradient(900px 900px at -10% 0%, rgba(110,231,183,1) 0%, rgba(110,231,183,0) 40%),
-              radial-gradient(900px 900px at 110% 100%, rgba(125,211,252,1) 0%, rgba(125,211,252,0) 45%),
-              linear-gradient(135deg,#ecfeff 0%, #e6fffb 100%); }
-.theme-mint .title{ color:#022c22 }
-.theme-mint .badge.ok{ background:#d1fae5; color:#065f46 }
-.theme-mint .badge.warn{ background:#fee2e2; color:#b91c1c }
-#scan-video{ aspect-ratio:16/9; object-fit:cover; background:#000; border-radius:12px }
 
-
-/* === Added: loaders, overlay, popup, skeleton === */
-.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+:root{ --brand:#22d3ee; --accent:#a78bfa; }
+*{box-sizing:border-box}
+.section{transition:opacity .18s ease, transform .18s ease}
+.section.hidden{opacity:0;transform:translateY(8px);display:none}
+.badge{display:inline-block;padding:.125rem .5rem;border-radius:.5rem;font-size:.75rem;background:#0b1220}
+.badge.ok{background:rgba(16,185,129,.18);color:#a7f3d0}
+.badge.warn{background:rgba(251,191,36,.18);color:#fde68a}
+.ticket{position:relative;border-radius:16px;border:1px dashed rgba(255,255,255,.2);background:linear-gradient(135deg,rgba(34,211,238,.07),rgba(167,139,250,.07));overflow:hidden}
+.ticket .stripe{position:absolute;inset:auto 0 0 0;height:6px;background:linear-gradient(90deg,var(--brand),var(--accent))}
+.ticket .ticket-inner{display:grid;grid-template-columns:1fr 200px;gap:16px;padding:20px}
+.ticket .title{font-weight:800;font-size:20px}
+.ticket .meta{color:#cbd5e1}
+.qr-wrap{width:180px;height:180px;display:grid;place-items:center;border-radius:12px;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
 .skeleton{background:linear-gradient(90deg,#1f2937 0,#334155 50%,#1f2937 100%);background-size:200% 100%;border-radius:8px;animation:skeleton 1.2s ease-in-out infinite}
 @keyframes skeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .segmented{width:22px;height:22px;border-radius:50%;background:conic-gradient(from 0deg, rgba(34,211,238,.9) 0 12%, transparent 12% 25%);-webkit-mask:radial-gradient(farthest-side,transparent 55%,#000 56%);mask:radial-gradient(farthest-side,transparent 55%,#000 56%);animation:spin 1s linear infinite}
 .segmented.large{width:56px;height:56px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;z-index:60;animation:fadeIn .2s ease}
-.overlay-box{width:min(92vw,460px);border-radius:16px;padding:24px;background:#0b1220;border:1px solid rgba(255,255,255,.08);transform:scale(.95);animation:pop .2s ease forwards}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes pop{to{transform:scale(1)}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;z-index:60}
+.overlay-box{width:min(92vw,460px);border-radius:16px;padding:24px;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
 .popup{position:fixed;inset:0;display:grid;place-items:center;z-index:70;pointer-events:none}
-.popup-box{width:min(88vw,380px);border-radius:16px;padding:20px;background:#0b1220;border:1px solid rgba(255,255,255,.08);transform:translateY(8px) scale(.98);opacity:0;animation:pop2 .22s ease forwards}
-@keyframes pop2{to{transform:none;opacity:1}}
+.popup-box{width:min(88vw,380px);border-radius:16px;padding:20px;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
 .popup-icon{width:42px;height:42px;border-radius:50%}
 .popup-icon.ok{background:radial-gradient(circle at 30% 30%,#34d399,#065f46)}
 .popup-icon.warn{background:radial-gradient(circle at 30% 30%,#f59e0b,#7c2d12)}
 .popup-icon.err{background:radial-gradient(circle at 30% 30%,#ef4444,#7f1d1d)}
-/* Ticket polish */
-.ticket{box-shadow:0 10px 25px rgba(0,0,0,.25);}

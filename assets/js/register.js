@@ -1,35 +1,49 @@
-import { el } from "./utils.js";
-import { state, saveRegs } from "./state.js";
-import { EVENT_CAPACITY } from "./config.js";
-import { showMsg, showOverlay, hideOverlay, btnLoading } from "./utils.js";
-import { api } from "./api.js";
-import { findUnpaidByWA } from "./payment.js";
 
-export function refreshQuotaInfo(){
-  const left = Math.max(0, EVENT_CAPACITY - (state.regs?.length || 0));
-  el("kuota-info").textContent = `Sisa kuota acara: ${left}/${EVENT_CAPACITY}`;
+import { $, el, showMsg, showOverlay, hideOverlay, btnLoading } from "./utils.js";
+import { api } from "./api.js";
+import { FOOD_OPTIONS } from "./config.js";
+import { findUnpaidByWA } from "./payment.js";
+function fillFoodOptions(){
+  const sel = el("f-makanan");
+  sel.innerHTML = "";
+  FOOD_OPTIONS.forEach(opt=>{
+    const o = document.createElement("option");
+    o.value = opt.value; o.textContent = opt.label; sel.appendChild(o);
+  });
 }
-export async function onRegister(e){
-  e.preventDefault();
-  const nama = el("f-nama").value.trim();
-  const fakultas = (el("f-fakultas").value || "").trim();
-  const prodi = (el("f-prodi").value || "").trim();
-  const wa = el("f-wa").value.trim().replace(/\s/g,'');
-  const makananText = el("f-makanan").selectedOptions[0]?.textContent || "";
-  const domisili = (el("f-domisili").value || "").trim();
-  const msg = el("register-msg");
-  if(!/^\+?\d{8,15}$/.test(wa) && !/^\d{8,15}$/.test(wa)) return showMsg(msg,"No. WA tidak valid (8–15 digit).","text-red-400");
-  if(EVENT_CAPACITY - (state.regs?.length || 0) <= 0) return showMsg(msg,"Kuota acara sudah penuh.","text-red-400");
-  try{
-    const payload = { nama, fakultas, prodi, wa, makanan: makananText, domisili };
-    const btn = e.submitter || document.querySelector('#form-register button[type=submit]');
-    btnLoading(btn, true); showOverlay('Mendaftarkan…','Mengirim data ke server',8000);
-    await api.register(payload);
-    // removed admin-only list refresh
-    hideOverlay(); btnLoading(btn,false);
-    showMsg(msg,'Pendaftaran berhasil! Lanjut ke tab <b>Pembayaran</b> untuk upload bukti.','text-emerald-300');
-    document.getElementById('btn-pay').click();
-    document.getElementById('pay-wa').value = wa;
-    await findUnpaidByWA();
-} catch(e){ showMsg(msg, 'Gagal daftar: ' + e.message, 'text-red-400'); }
+export function bindRegister(){
+  fillFoodOptions();
+  $("#btn-reset-form").addEventListener("click", ()=>{ el("form-register").reset(); el("register-msg").textContent=""; });
+  el("form-register").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const btn = e.submitter || el("form-register").querySelector('button[type="submit"]');
+    const msg = el("register-msg");
+    const nama = $("#f-nama").value.trim();
+    const fakultas = $("#f-fakultas").value.trim();
+    const prodi = $("#f-prodi").value.trim();
+    const wa = $("#f-wa").value.trim();
+    const makanan = $("#f-makanan").selectedOptions[0]?.textContent || $("#f-makanan").value;
+    const domisili = $("#f-domisili").value.trim();
+    if(!nama || !wa){ showMsg(msg,"Nama & WA wajib diisi.","text-red-400"); return; }
+    try{
+      btnLoading(btn,true); showOverlay("Mendaftarkan…","Mengirim data ke server",8000);
+      await api.register({ nama, fakultas, prodi, wa, makanan, domisili });
+      hideOverlay(); btnLoading(btn,false);
+      showMsg(msg,'Pendaftaran berhasil! Lanjut ke tab <b>Pembayaran</b> untuk upload bukti.','text-emerald-300');
+      document.getElementById("btn-pay")?.click();
+      document.getElementById("pay-wa").value = wa;
+      await findUnpaidByWA();
+    }catch(e){
+      hideOverlay(); btnLoading(btn,false);
+      const err = e?.message || "";
+      if (/duplicate-wa/i.test(err)) {
+        showMsg(msg,'Nomor WA sudah terdaftar. Silakan lanjut ke tab <b>Pembayaran</b> untuk upload bukti.','text-yellow-300');
+        document.getElementById("btn-pay")?.click();
+        document.getElementById("pay-wa").value = wa;
+        await findUnpaidByWA();
+      } else {
+        showMsg(msg,'Gagal daftar: '+err,'text-red-400');
+      }
+    }
+  });
 }
