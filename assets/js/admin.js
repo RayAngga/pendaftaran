@@ -227,3 +227,7 @@ export function bindAdmin(){
     }
   })();
 }
+
+
+// Expose a stable table re-render for other modules
+export function renderAdminTable(){ renderTable(); }
