@@ -25,8 +25,7 @@ export async function onRegister(e){
     const btn = e.submitter || document.querySelector('#form-register button[type=submit]');
     btnLoading(btn, true); showOverlay('Mendaftarkan…','Mengirim data ke server',8000);
     await api.register(payload);
-    const { rows } = await api.list(); state.regs = rows; saveRegs();
-    refreshQuotaInfo();
+    // removed admin-only list refresh
     hideOverlay(); btnLoading(btn,false);
     showMsg(msg,'Pendaftaran berhasil! Lanjut ke tab <b>Pembayaran</b> untuk upload bukti.','text-emerald-300');
     document.getElementById('btn-pay').click();

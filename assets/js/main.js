@@ -34,5 +34,5 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   el("admin-search").addEventListener("input", ()=>import("./admin.js").then(m=>m.renderAdminTable()));
   renderStats();
   el("scan-start").addEventListener("click", startScan); el("scan-stop").addEventListener("click", stopScan);
-  try{ const { rows } = await api.list(); state.regs = rows; saveRegs(); renderStats(); }catch(e){ console.warn('Gagal sync awal:', e); }
+  // initial admin sync removed; will sync after admin login
 });

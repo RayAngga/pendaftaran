@@ -43,7 +43,7 @@ export function submitProof(){
       const dataUrl = reader.result;
       showOverlay("Mengunggah bukti…","Memproses & membuat QR",8000);
       await api.submitProof(state.current.id || state.current.code || state.current.wa, dataUrl);
-      const { rows } = await api.list(); state.regs = rows; saveRegs();
+      // removed admin-only list refresh
       el("pay-data").classList.add("hidden");
       hideOverlay();
       msg.className="text-sm text-emerald-300"; msg.textContent="Bukti diterima. Kode & QR dibuat.";
