@@ -1,15 +1,11 @@
 // assets/js/renderer.js
-// Replikasi desain seperti contoh foto (aurora bg, kartu, panel QR putih, pill status)
-
 export async function buildTicketImage(rec, opt = {}) {
-  // --- ukuran final PNG (sebelum skala DPR)
   const W = opt.width  || 1920;
   const H = opt.height || 1080;
-  const BLEED = opt.bleed || 40;        // margin luar
-  const QR_SIZE = opt.qrSize || 520;    // ukuran QR (di dalam panel)
+  const BLEED = opt.bleed || 40;
+  const QR_SIZE = opt.qrSize || 520;
   const DPR = (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1;
 
-  // Canvas hi-DPI
   const cv = document.createElement("canvas");
   cv.width = Math.round(W * DPR);
   cv.height = Math.round(H * DPR);
@@ -18,48 +14,39 @@ export async function buildTicketImage(rec, opt = {}) {
   const ctx = cv.getContext("2d");
   ctx.scale(DPR, DPR);
 
-  /* =========== BACKGROUND (aurora + vignette) =========== */
-  // Lapisan 1: gradien aurora (teal → violet)
+  // ---- Background aurora + vignette
   let g = ctx.createLinearGradient(0, 0, W, H);
   g.addColorStop(0.00, "#0ea5a3");
   g.addColorStop(0.45, "#1f2d4e");
   g.addColorStop(1.00, "#6d28d9");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-  // Lapisan 2: vignette halus
   const rad = ctx.createRadialGradient(W*0.3, H*0.25, 80, W*0.5, H*0.5, Math.max(W,H)*0.7);
   rad.addColorStop(0, "rgba(0,0,0,0)");
   rad.addColorStop(1, "rgba(0,0,0,0.45)");
-  ctx.fillStyle = rad; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = rad; ctx.fillRect(0,0,W,H);
 
-  /* ================== KARTU ================== */
+  // ---- Card
   const cardX = BLEED, cardY = BLEED;
   const cardW = W - BLEED*2, cardH = H - BLEED*2;
-  const CARD_R = 36;
-
-  // Bayangan kartu
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.5)";
   ctx.shadowBlur = 36;
   ctx.shadowOffsetY = 22;
-  roundRect(ctx, cardX, cardY, cardW, cardH, CARD_R);
-  // Isi kartu: gradasi navy gelap
+  roundRect(ctx, cardX, cardY, cardW, cardH, 36);
   const gCard = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
   gCard.addColorStop(0, "#0f1e2c");
   gCard.addColorStop(1, "#122434");
   ctx.fillStyle = gCard; ctx.fill();
   ctx.restore();
 
-  // Stripe gradasi di bawah kartu
+  // stripe bawah
   const stripeH = 14;
-  const gStripe = ctx.createLinearGradient(cardX, cardY + cardH - stripeH, cardX + cardW, cardY + cardH);
-  gStripe.addColorStop(0, "#22d3ee");
-  gStripe.addColorStop(1, "#a78bfa");
-  ctx.fillStyle = gStripe;
-  ctx.fillRect(cardX, cardY + cardH - stripeH, cardW, stripeH);
+  const gStripe = ctx.createLinearGradient(cardX, cardY+cardH-stripeH, cardX+cardW, cardY+cardH);
+  gStripe.addColorStop(0, "#22d3ee"); gStripe.addColorStop(1, "#a78bfa");
+  ctx.fillStyle = gStripe; ctx.fillRect(cardX, cardY+cardH-stripeH, cardW, stripeH);
 
-  /* ================== HEADER ================== */
+  // ---- Header
   const LEFT = cardX + 60;
   let y = cardY + 120;
 
@@ -67,31 +54,23 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.font = "800 56px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
   ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", LEFT, y);
 
-  // Nama besar
   y += 88;
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 96px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
   ctx.fillText(String(rec?.nama || "-"), LEFT, y);
 
-  /* ================== PANEL QR PUTIH ================== */
-  // Panel rounded putih dengan efek glossy halus
+  // ---- QR panel putih
   const PANEL = QR_SIZE + 140;
   const qxPanel = cardX + cardW - PANEL - 88;
-  // jaga supaya tidak menimpa judul
-  const qyPanel0 = cardY + 140;
-  const qyPanel = Math.max(qyPanel0, y - 96);
-
-  // Bayangan panel
+  const qyPanel = Math.max(cardY + 140, y - 96);
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 28;
   ctx.shadowOffsetY = 16;
-
   roundRect(ctx, qxPanel, qyPanel, PANEL, PANEL, 34);
   ctx.fillStyle = "#ffffff"; ctx.fill();
   ctx.restore();
 
-  // Glossy lembut (linear gradient tipis)
   let gGloss = ctx.createLinearGradient(qxPanel, qyPanel, qxPanel, qyPanel + PANEL);
   gGloss.addColorStop(0, "rgba(255,255,255,0.65)");
   gGloss.addColorStop(0.12, "rgba(255,255,255,0.0)");
@@ -99,24 +78,22 @@ export async function buildTicketImage(rec, opt = {}) {
   roundRect(ctx, qxPanel, qyPanel, PANEL, PANEL, 34);
   ctx.fillStyle = gGloss; ctx.fill();
 
-  // QR
   const qrCanvas = await makeQR(String(rec?.code || rec?.id || "NO-CODE"), QR_SIZE);
-  const qx = qxPanel + (PANEL - QR_SIZE)/2;
-  const qy = qyPanel + (PANEL - QR_SIZE)/2;
-  ctx.drawImage(qrCanvas, qx, qy, QR_SIZE, QR_SIZE);
+  ctx.drawImage(qrCanvas, qxPanel + (PANEL-QR_SIZE)/2, qyPanel + (PANEL-QR_SIZE)/2, QR_SIZE, QR_SIZE);
 
-  /* ================== KOLOM KIRI ================== */
+  // ---- Kolom kiri (jarak dinaikkan ke 72px)
   y += 70;
   const LBL_W = 210;
+  const lineStep = 72;
 
   const line = (label, value) => {
     ctx.font = "700 44px system-ui, -apple-system, Segoe UI";
-    ctx.fillStyle = "rgba(203,213,225,1)"; // slate-300
+    ctx.fillStyle = "rgba(203,213,225,1)";
     ctx.fillText(label, LEFT, y);
     ctx.font = "400 44px system-ui, -apple-system, Segoe UI";
     ctx.fillStyle = "#eaf1f9";
     ctx.fillText(String(value ?? "-"), LEFT + LBL_W, y);
-    y += 64;
+    y += lineStep;
   };
 
   line("Fakultas", rec?.fakultas || "-");
@@ -125,23 +102,27 @@ export async function buildTicketImage(rec, opt = {}) {
   line("Makanan",  toFood(rec?.makanan));
   line("Kode",     rec?.code || "-");
 
-  // Dua pill: "Status:" (kuning) + "Sudah/Belum" (hijau/merah)
-  y += 6;
+  // ---- Dua baris pill: Status & Bayar
+  const attended = Number(rec?.attended) === 1;
   const paid = Number(rec?.paid) === 1;
-  const pillL = drawPill(ctx, "Status:", LEFT, y - 44, {
-    bg: "#f3c969", fg: "#20232b", lh: 56, padX: 28, radius: 16, bold: true
-  });
-  drawPill(ctx, paid ? "Sudah" : "Belum", pillL.x + pillL.w + 18, y - 44, {
-    bg: paid ? "#34d399" : "#ef4444",
-    fg: "#0b1220",
-    lh: 56, padX: 28, radius: 16, bold: true
-  });
 
-  /* ================== DONE ================== */
+  // Baris 1: Status
+  y += 8;
+  const p1 = drawPillLabel(ctx, "Status:", LEFT, y - 46);
+  drawPillValue(ctx, attended ? "Hadir" : "Terdaftar",
+                p1.x + p1.w + 18, y - 46,
+                attended ? "#60a5fa" : "#f59e0b"); // biru utk hadir, kuning utk terdaftar
+  y += 66;
+
+  // Baris 2: Bayar
+  const p2 = drawPillLabel(ctx, "Bayar:", LEFT, y - 46);
+  drawPillValue(ctx, paid ? "Sudah" : "Belum",
+                p2.x + p2.w + 18, y - 46,
+                paid ? "#34d399" : "#ef4444");
+
   return cv.toDataURL("image/png");
 
-  /* ---------------- helpers ---------------- */
-
+  // ===== Helpers
   function roundRect(ctx, x, y, w, h, r){
     const rr = Math.min(r, w/2, h/2);
     ctx.beginPath();
@@ -153,29 +134,30 @@ export async function buildTicketImage(rec, opt = {}) {
     ctx.closePath();
   }
 
-  function drawPill(ctx, text, x, y, opt){
-    const { bg="#10b981", fg="#0b1220", lh=52, padX=20, radius=999, bold=false } = opt || {};
-    ctx.font = `${bold ? "800" : "600"} 34px system-ui, -apple-system, Segoe UI`;
-    const w = Math.ceil(ctx.measureText(text).width) + padX*2;
-    ctx.save();
-    ctx.beginPath();
-    roundRect(ctx, x, y, w, lh, radius);
-    ctx.fillStyle = bg; ctx.fill();
-    ctx.fillStyle = fg; ctx.fillText(text, x + padX, y + lh - 16);
-    ctx.restore();
-    return { x, y, w, h: lh };
+  function drawPillLabel(ctx, text, x, y){
+    ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
+    const w = Math.ceil(ctx.measureText(text).width) + 30*2;
+    ctx.beginPath(); roundRect(ctx, x, y, w, 56, 16);
+    ctx.fillStyle = "#f3c969"; ctx.fill();
+    ctx.fillStyle = "#20232b"; ctx.fillText(text, x + 30, y + 56 - 16);
+    return { x, y, w, h: 56 };
   }
 
-  // QR generator: qrcode -> qrious -> fallback
+  function drawPillValue(ctx, text, x, y, bg){
+    ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
+    const w = Math.ceil(ctx.measureText(text).width) + 28*2;
+    ctx.beginPath(); roundRect(ctx, x, y, w, 56, 16);
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.fillStyle = "#0b1220"; ctx.fillText(text, x + 28, y + 56 - 16);
+  }
+
   async function makeQR(text, size){
     const c = document.createElement("canvas");
     c.width = c.height = size;
     try{
       if (window.QRCode?.toCanvas){
-        await window.QRCode.toCanvas(c, text, {
-          width: size, margin: 1, errorCorrectionLevel: "H",
-          color: { light: "#ffffff", dark: "#000000" }
-        });
+        await window.QRCode.toCanvas(c, text, { width: size, margin: 1, errorCorrectionLevel: "H",
+          color: { light: "#ffffff", dark: "#000000" }});
         return c;
       }
     }catch{}
@@ -191,7 +173,6 @@ export async function buildTicketImage(rec, opt = {}) {
     return c;
   }
 
-  // Tampilkan 0 depan + strip seperti 0812-3456-7890
   function waPretty(v){
     let s = String(v||"").replace(/[^\d]/g,"");
     if (!s) return "-";
@@ -199,16 +180,10 @@ export async function buildTicketImage(rec, opt = {}) {
     if (s[0] === "8") s = "0"+s;
     if (s[0] !== "0" && s.length >= 9 && s.length <= 13) s = "0"+s;
 
-    // format strip dinamis 4-4-4 / 4-4-3 / 4-4-5 dst
     const parts = [];
-    let i = 0;
-    const pattern = [4,4,4,4]; // cukup untuk 16 digit
-    for (const n of pattern){
-      if (i >= s.length) break;
-      parts.push(s.slice(i, i+n));
-      i += n;
-    }
-    return parts.join("-"); // gunakan U+2011 (non-breaking hyphen) agar rapi
+    let i = 0; const pattern = [4,4,4,4];
+    for (const n of pattern){ if (i >= s.length) break; parts.push(s.slice(i, i+n)); i += n; }
+    return parts.join("-");
   }
 
   function toFood(m){
