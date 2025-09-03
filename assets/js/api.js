@@ -7,9 +7,17 @@ async function call(action, payload){
     headers:{ "Content-Type":"application/json", "Cache-Control":"no-store" },
     body: JSON.stringify({ action, payload })
   });
-  const data = await r.json();
+  const text = await r.text();
+  let data = null;
+  try{
+    data = text ? JSON.parse(text) : null;
+  }catch(e){
+    const hint = (text || "").slice(0,200);
+    const err = new Error(`Server returned non-JSON (${r.status} ${r.statusText}): ${hint}`);
+    err.responseRaw = text; throw err;
+  }
   if(!r.ok || data?.ok===false){
-    const err = new Error(data?.error || r.statusText);
+    const err = new Error(data?.error || r.statusText || "Request failed");
     err.response = data; throw err;
   }
   return data;

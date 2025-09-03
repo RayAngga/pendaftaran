@@ -7,7 +7,7 @@
 //
 // This function expects POST with JSON: { action, payload }
 
-const fetch = global.fetch || (await import('node-fetch')).default;
+const fetch = globalThis.fetch; // Node 18+ on Vercel has fetch built-in
 
 function parseCookies(cookieHeader=''){
   const out = {};
