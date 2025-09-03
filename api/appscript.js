@@ -1,18 +1,19 @@
 // /api/appscript.js — Vercel Serverless Function (Node.js, ESM)
-// Fitur:
-// - adminLogin/adminLogout (set/del cookie adm=1; HttpOnly; SameSite=Lax; Secure hanya di HTTPS)
-// - Proteksi aksi admin (list/delete/togglePaid/toggleAttend) via cookie
-// - Proxy ke Google Apps Script (APPS_SCRIPT_URL) dan SELALU balas JSON
-// - Penanganan non-JSON dari Apps Script → dibungkus jadi error JSON
-// - Action "diag" untuk cek env & status login (membantu debugging)
-// - Response header no-cache untuk API
+// - Public actions: register, findByWA, getTicket, submitProof (TIDAK butuh login)
+// - Protected actions: list, delete, togglePaid, toggleAttend (BUTUH login adm=1)
+// - adminLogin/adminLogout untuk set/hapus cookie adm
+// - Proxy ke APPS_SCRIPT_URL dan SELALU balas JSON (non-JSON dibungkus error JSON)
+// - Aksi "diag" untuk cek ENV & status login
+// - Header no-cache untuk API
 
 const fetchFn = globalThis.fetch;
+
+const PROTECTED_ACTIONS = new Set(['list', 'delete', 'togglePaid', 'toggleAttend']);
+const PUBLIC_ACTIONS    = new Set(['register', 'findByWA', 'getTicket', 'submitProof']);
 
 function send(res, status, obj) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
-  // no-cache agar respons login/data tidak ter-cache
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -46,8 +47,7 @@ function setAuthCookie(req, res, on = true) {
 
 function readJson(req) {
   return new Promise((resolve) => {
-    // @vercel/node sering sudah parse req.body; bila ada, gunakan langsung
-    if (req.body != null) return resolve(req.body);
+    if (req.body != null) return resolve(req.body); // @vercel/node kadang sudah parse JSON
     let data = '';
     req.on('data', (c) => (data += c));
     req.on('end', () => {
@@ -60,56 +60,55 @@ function readJson(req) {
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') {
-      // Sediakan diag GET ringan kalau perlu (opsional)
       if (req.method === 'GET' && req.url && req.url.includes('/api/appscript')) {
         return send(res, 200, { ok: true, msg: 'Use POST with JSON body {action, payload}' });
       }
       return send(res, 405, { ok:false, error:'Method Not Allowed' });
     }
 
-    const body = await readJson(req);
+    const body    = await readJson(req);
     const action  = body?.action;
     const payload = body?.payload;
     if (!action) return send(res, 400, { ok:false, error:'Missing action' });
 
-    // ===== DIAGNOSTIK (untuk cek env & status login) =====
+    // Diagnostik
     if (action === 'diag') {
       const cookies = parseCookies(req.headers.cookie || '');
       return send(res, 200, {
         ok: true,
-        env: process.env.VERCEL_ENV || 'unknown',      // production | preview | development
+        env: process.env.VERCEL_ENV || 'unknown',
         hasAdminPass: Boolean(process.env.ADMIN_PASSCODE),
         hasAppsUrl: Boolean(process.env.APPS_SCRIPT_URL),
         isAdmin: cookies['adm'] === '1'
       });
     }
 
-    // ===== LOGIN =====
+    // Login
     if (action === 'adminLogin') {
-      const pass = String(payload?.pass || '');
+      const pass   = String(payload?.pass || '');
       const secret = process.env.ADMIN_PASSCODE || '';
-      if (!secret) return send(res, 500, { ok:false, error:'ADMIN_PASSCODE not set' });
-      if (pass !== secret) return send(res, 401, { ok:false, error:'Invalid passcode' });
+      if (!secret)           return send(res, 500, { ok:false, error:'ADMIN_PASSCODE not set' });
+      if (pass !== secret)   return send(res, 401, { ok:false, error:'Invalid passcode' });
       setAuthCookie(req, res, true);
       return send(res, 200, { ok:true });
     }
 
-    // ===== LOGOUT =====
+    // Logout
     if (action === 'adminLogout') {
       setAuthCookie(req, res, false);
       return send(res, 200, { ok:true });
     }
 
-    // ===== PROXY KE APPS SCRIPT =====
+    // Proxy ke Apps Script
     const url = process.env.APPS_SCRIPT_URL;
     if (!url) return send(res, 500, { ok:false, error:'APPS_SCRIPT_URL not set' });
 
-    // Aksi yang butuh login admin
-    const needsAuth = ['list', 'delete', 'togglePaid', 'toggleAttend'];
+    // Proteksi hanya untuk aksi yang ada di PROTECTED_ACTIONS
     const hasAdm = parseCookies(req.headers.cookie || '')['adm'] === '1';
-    if (needsAuth.includes(action) && !hasAdm) {
+    if (PROTECTED_ACTIONS.has(action) && !hasAdm) {
       return send(res, 401, { ok:false, error:'Unauthorized' });
     }
+    // Catatan: PUBLIC_ACTIONS tidak dicek cookie; aksi lain (di luar 2 set) tetap diproxy apa adanya.
 
     let fr;
     try {
@@ -127,7 +126,6 @@ export default async function handler(req, res) {
     try {
       data = text ? JSON.parse(text) : null;
     } catch {
-      // Jika GAS balas HTML/error bukan JSON
       return send(res, fr.status || 500, { ok:false, error: text || 'Apps Script returned non-JSON' });
     }
 
