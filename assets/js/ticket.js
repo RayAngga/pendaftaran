@@ -2,21 +2,21 @@
 import { $, el } from "./utils.js";
 import { api } from "./api.js";
 
-/* -------------------- Helpers -------------------- */
+/* ===================== Helpers ===================== */
 
 // Jaga 0 depan saat tampilkan WA
 function waDisplay(v) {
   let s = String(v || "").replace(/[^\d]/g, "");
   if (!s) return "";
-  if (s.startsWith("62")) s = "0" + s.slice(2);
-  if (s[0] === "8") s = "0" + s;
+  if (s.startsWith("62")) s = "0" + s.slice(2); // 62xxxx -> 0xxxx
+  if (s[0] === "8") s = "0" + s;                // 813... -> 0813...
   if (s[0] !== "0" && s.length >= 9 && s.length <= 13) s = "0" + s;
   return s;
 }
-function isPaid(rec){ return Number(rec?.paid) === 1; }
+const isPaid = (rec) => Number(rec?.paid) === 1;
 
-// Buat QR ke offscreen canvas
-async function makeQRCanvas(text, size = 260, light = "#ffffff", dark = "#000000") {
+// Buat QR pada offscreen canvas (prioritas: qrcode -> qrious -> fallback)
+async function makeQRCanvas(text, size = 240, light = "#ffffff", dark = "#000000") {
   const c = document.createElement("canvas");
   c.width = c.height = size;
 
@@ -35,28 +35,32 @@ async function makeQRCanvas(text, size = 260, light = "#ffffff", dark = "#000000
   try {
     if (window.QRious) {
       new window.QRious({
-        element: c, value: text, size,
-        background: light, foreground: dark, level: "H"
+        element: c,
+        value: text,
+        size,
+        background: light,
+        foreground: dark,
+        level: "H",
       });
       return c;
     }
   } catch {}
 
-  // fallback sederhana
+  // Fallback sangat sederhana
   const ctx = c.getContext("2d");
-  ctx.fillStyle = light; ctx.fillRect(0,0,size,size);
-  ctx.fillStyle = dark;  ctx.fillRect(size*0.4,size*0.4,size*0.2,size*0.2);
+  ctx.fillStyle = light; ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = dark;  ctx.fillRect(size * 0.4, size * 0.4, size * 0.2, size * 0.2);
   return c;
 }
 
-function roundRect(ctx, x, y, w, h, r){
-  const rr = Math.min(r, w/2, h/2);
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
-  ctx.moveTo(x+rr, y);
-  ctx.arcTo(x+w, y,   x+w, y+h, rr);
-  ctx.arcTo(x+w, y+h, x,   y+h, rr);
-  ctx.arcTo(x,   y+h, x,   y,   rr);
-  ctx.arcTo(x,   y,   x+w, y,   rr);
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y,   x + w, y + h, rr);
+  ctx.arcTo(x + w, y+h, x,     y + h, rr);
+  ctx.arcTo(x,     y+h, x,     y,     rr);
+  ctx.arcTo(x,     y,   x + w, y,     rr);
   ctx.closePath();
 }
 
@@ -65,33 +69,37 @@ function drawLine(ctx, lab, val, x, y) {
   ctx.font = "600 20px 'Inter', system-ui";
   ctx.fillStyle = "#e5e7eb";
   ctx.fillText(lab, x, y);
+
   ctx.font = "400 22px 'Inter', system-ui";
   ctx.fillStyle = "#ffffff";
   ctx.fillText(String(val || "-"), x + 120, y);
 }
 
-// badge dengan label di kiri
-function drawBadgeRow(ctx, label, text, x, y, {bg="#10b981", fg="#0b1220"} = {}) {
+// Badge dengan label di kiri
+function drawBadgeRow(ctx, label, text, x, y, { bg = "#10b981", fg = "#0b1220" } = {}) {
   ctx.font = "600 20px 'Inter', system-ui";
   ctx.fillStyle = "#e5e7eb";
   ctx.fillText(label, x, y);
 
   const padX = 16, padY = 10, h = 36;
   ctx.font = "700 20px 'Inter', system-ui";
-  const w = ctx.measureText(text).width + padX*2;
+  const w = ctx.measureText(text).width + padX * 2;
   const rx = x + 120, ry = y - h + padY;
+
   roundRect(ctx, rx, ry, w, h, 999);
   ctx.fillStyle = bg; ctx.fill();
-  ctx.fillStyle = fg; ctx.fillText(text, rx + padX, y - 6);
+
+  ctx.fillStyle = fg;
+  ctx.fillText(text, rx + padX, y - 6);
 }
 
-/* ---------------- Render Ticket Card ---------------- */
+/* ================ Render Ticket (Canvas) ================ */
 
-async function renderTicketCard(rec){
+async function renderTicketCard(rec) {
   const wrap = el("ticket-wrap");
   if (!wrap) return null;
 
-  // siapkan canvas
+  // Siapkan canvas
   let cv = el("ticket-canvas");
   if (!cv) {
     cv = document.createElement("canvas");
@@ -100,20 +108,24 @@ async function renderTicketCard(rec){
     wrap.appendChild(cv);
   }
 
+  // Ukuran gambar akhir (pas untuk unduhan PNG tajam)
   const W = 1200, H = 680;
   cv.width = W; cv.height = H;
+
+  // Responsif di halaman
   cv.style.width = "100%";
   cv.style.maxWidth = "900px";
-  cv.style.height = (H / W * 100) + "%";
+  cv.style.height = "auto";
 
   const ctx = cv.getContext("2d");
 
-  // latar halaman
-  ctx.fillStyle = "#0b1220"; ctx.fillRect(0,0,W,H);
+  // Latar luar kartu
+  ctx.fillStyle = "#0b1220";
+  ctx.fillRect(0, 0, W, H);
 
-  // kartu + gradient kaya warna
+  // Kartu gradient warna kaya
   const pad = 28;
-  const cardX = pad, cardY = pad, cardW = W - pad*2, cardH = H - pad*2;
+  const cardX = pad, cardY = pad, cardW = W - pad * 2, cardH = H - pad * 2;
 
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
@@ -129,41 +141,40 @@ async function renderTicketCard(rec){
   g.addColorStop(1.00, "#a21caf"); // fuchsia
 
   roundRect(ctx, cardX, cardY, cardW, cardH, 34);
-  ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = g;
+  ctx.fill();
   ctx.restore();
 
-  // *** TEKS judul dulu ***
+  // ===== Teks judul: digambar dulu supaya tidak ketabrak panel QR =====
   const leftX = cardX + 48;
   let y = cardY + 88;
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 44px 'Inter', system-ui";
-  const title = "RIUNGMUNGPULUNG MABA — E-Ticket";
-  ctx.fillText(title, leftX, y);
+  ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", leftX, y);
 
-  // batas bawah judul, supaya QR tidak menimpa
-  const titleBottom = y + 20;
-
+  const titleBottom = y + 20; // batas bawah judul, untuk menempatkan panel QR
   y += 56;
+
   ctx.font = "700 34px 'Inter', system-ui";
   ctx.fillText(String(rec.nama || "-"), leftX, y);
 
-  // *** PANEL QR digambar setelah judul, dan diposisikan di bawah judul jika perlu ***
-  const qrBoxSize = 320;   // panel putih
-  const qrInner   = 240;   // QR
+  // ===== Panel QR putih (kecil) — posisikan di bawah judul jika perlu =====
+  const qrBoxSize = 320;  // panel putih
+  const qrInner   = 240;  // ukuran QR di dalam panel
   const qrBoxX = cardX + cardW - qrBoxSize - 40;
-  let qrBoxY = cardY + 72;
-  if (qrBoxY < titleBottom + 24) qrBoxY = titleBottom + 24; // cegah tabrakan judul
+  let   qrBoxY = cardY + 72;
+  if (qrBoxY < titleBottom + 24) qrBoxY = titleBottom + 24; // cegah overlap judul
 
   roundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 18);
   ctx.fillStyle = "#ffffff"; ctx.fill();
 
-  const qr = await makeQRCanvas(rec.code || rec.id || "NO-CODE", qrInner, "#ffffff", "#000000");
+  const qrCanvas = await makeQRCanvas(rec.code || rec.id || "NO-CODE", qrInner, "#ffffff", "#000000");
   const qx = qrBoxX + (qrBoxSize - qrInner) / 2;
   const qy = qrBoxY + (qrBoxSize - qrInner) / 2;
-  ctx.drawImage(qr, qx, qy, qrInner, qrInner);
+  ctx.drawImage(qrCanvas, qx, qy, qrInner, qrInner);
 
-  // field kiri
+  // ===== Kolom data kiri =====
   y += 40; drawLine(ctx, "Fakultas:", rec.fakultas, leftX, y);
   y += 40; drawLine(ctx, "Prodi:",    rec.prodi,    leftX, y);
   y += 40; drawLine(ctx, "WA:",       waDisplay(rec.wa), leftX, y);
@@ -171,18 +182,25 @@ async function renderTicketCard(rec){
   y += 40; drawLine(ctx, "Domisili:", rec.domisili, leftX, y);
   y += 40; drawLine(ctx, "Kode:",     rec.code || "-", leftX, y);
 
-  // status & bayar di baris terpisah
+  // Status & Bayar sebagai badge
   y += 40;
-  drawBadgeRow(ctx, "Status:", "Terdaftar", leftX, y, { bg:"#f59e0b", fg:"#111827" });
+  drawBadgeRow(ctx, "Status:", "Terdaftar", leftX, y, { bg: "#f59e0b", fg: "#111827" });
   y += 48;
   const paid = isPaid(rec);
-  drawBadgeRow(ctx, "Bayar:", paid ? "Sudah" : "Belum", leftX, y,
-    paid ? { bg:"#10b981", fg:"#0b1220" } : { bg:"#ef4444", fg:"#0b1220" });
+  drawBadgeRow(
+    ctx,
+    "Bayar:",
+    paid ? "Sudah" : "Belum",
+    leftX,
+    y,
+    paid ? { bg: "#10b981", fg: "#0b1220" } : { bg: "#ef4444", fg: "#0b1220" }
+  );
 
-  // simpan nama file
+  // Simpan kode untuk nama file download
   el("__lastTicketCode")?.remove();
   const hidden = document.createElement("input");
-  hidden.type = "hidden"; hidden.id = "__lastTicketCode";
+  hidden.type = "hidden";
+  hidden.id   = "__lastTicketCode";
   hidden.value = String(rec.code || rec.id || "ticket");
   wrap.appendChild(hidden);
 
@@ -190,9 +208,9 @@ async function renderTicketCard(rec){
   return cv;
 }
 
-/* ---------------- Cari & Bind ---------------- */
+/* ================= Cari & Binding ================= */
 
-export async function findTicket(){
+export async function findTicket() {
   const wrap = el("ticket-wrap");
   const msg  = el("ticket-msg");
   if (msg) { msg.className = "text-sm mt-2 text-red-400"; msg.textContent = ""; }
@@ -200,7 +218,7 @@ export async function findTicket(){
   const raw = $("#t-search")?.value?.trim();
   if (!raw) { if (msg) msg.textContent = "Masukkan kode atau nomor WA."; return; }
 
-  // animasi loading (skeleton)
+  // Skeleton loading
   if (wrap) {
     wrap.classList.remove("hidden");
     wrap.innerHTML = '<div class="skeleton h-64 rounded-2xl"></div>';
@@ -220,7 +238,7 @@ export async function findTicket(){
   }
 }
 
-export function bindTicket(){
+export function bindTicket() {
   el("t-find")?.addEventListener("click", findTicket);
 
   el("t-download")?.addEventListener("click", () => {
@@ -230,6 +248,7 @@ export function bindTicket(){
     a.href = cv.toDataURL("image/png");
     a.download = `${code}.png`;
     document.body.appendChild(a);
-    a.click(); a.remove();
+    a.click();
+    a.remove();
   });
 }
