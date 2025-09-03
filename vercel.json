@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/**/*.js": { "runtime": "nodejs18.x" }
-  },
   "headers": [
     {
       "source": "/(index.html)?",
@@ -22,6 +19,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/script/(.*)", "destination": "/script/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
