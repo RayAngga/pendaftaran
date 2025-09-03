@@ -1,38 +1,37 @@
 {
+  "version": 2,
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x" }
+  },
   "headers": [
     {
       "source": "/(index.html)?",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
-        }
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
-        }
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
       ]
     }
-  ]
+  ],
+  "routes": [
+    { "src": "^/api/appscript$", "dest": "api/appscript.js" },
+
+    /* Pastikan file statis tidak ketimpa oleh fallback */
+    { "src": "^/assets/(.*)$", "dest": "assets/$1" },
+    { "src": "^/script/(.*)$", "dest": "script/$1" },
+    { "src": "^/(favicon\\.ico|robots\\.txt|manifest\\.json)$", "dest": "/$1" },
+
+    /* Fallback SPA ke index.html (kalau suatu saat pakai path-based routing) */
+    { "src": "/(.*)", "dest": "index.html" }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }
