@@ -1,49 +1,38 @@
-import { bindNav } from "./nav.js";
+// assets/js/main.js
+import { bindNav }      from "./nav.js";
 import { bindRegister } from "./register.js";
-import { bindPayment } from "./payment.js";
-import { bindAdmin } from "./admin.js";
-import { startScan, stopScan } from "./scanner.js";             // ← penting
-import { findTicket, downloadTicketPNG } from "./ticket.js";
+import { bindPayment }  from "./payment.js";
+import { bindAdmin }    from "./admin.js";
+import { startScan, stopScan } from "./scanner.js";
+import { bindTicket }   from "./ticket.js";  // ← tiket versi baru menggambar ke canvas & handle unduh PNG
 
-// helper kecil biar aman pas addEventListener
+// helper aman
 const on = (id, evt, fn) => {
   const el = document.getElementById(id);
   if (el) el.addEventListener(evt, fn);
   return el;
 };
 
-// footer year & hard refresh lewat logo
+// footer tahun & hard refresh lewat logo
 const y = document.getElementById("year");
 if (y) y.textContent = String(new Date().getFullYear());
 on("logo-btn", "click", () => location.reload());
 
-// aktifkan seluruh binding
-bindNav();
-bindRegister();
-bindPayment();
-bindAdmin();                                        // ← aktifkan login admin
+// === Init modul (dibungkus try supaya error satu modul tidak mematikan yang lain)
+try { bindNav?.();      } catch (e) { console.error("bindNav error:", e); }
+try { bindRegister?.(); } catch (e) { console.error("bindRegister error:", e); }
+try { bindPayment?.();  } catch (e) { console.error("bindPayment error:", e); }
+try { bindTicket?.();   } catch (e) { console.error("bindTicket error:", e); } // ← handle t-find & t-download
+try { bindAdmin?.();    } catch (e) { console.error("bindAdmin error:", e); }
 
-// tiket: cari, unduh png, unduh QR, print
-on("t-find", "click", findTicket);
-on("btn-save-png", "click", downloadTicketPNG);
-on("btn-download-qr", "click", () => {
-  const c = document.getElementById("qr-canvas");
-  if (!c) return;
-  const a = document.createElement("a");
-  a.href = c.toDataURL("image/png");
-  a.download = "qr.png";
-  a.click();
-});
-on("btn-print", "click", () => window.print());
-
+// === Scanner controls (jika ada di halaman)
 on("scan-start","click", startScan);
-on("scan-stop","click", stopScan);
+on("scan-stop","click",  stopScan);
 
-
-// tekan ENTER pada input tiket langsung cari
+// ENTER pada input tiket = klik tombol cari
 const tSearch = document.getElementById("t-search");
 if (tSearch) {
   tSearch.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); findTicket(); }
+    if (e.key === "Enter") { e.preventDefault(); document.getElementById("t-find")?.click(); }
   });
 }
