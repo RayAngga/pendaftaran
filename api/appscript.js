@@ -37,11 +37,13 @@ export default async function handler(req, res){
   const body = await parseBody(req);
   try{
     const { action } = body || {};
-    const ADMIN_ACTIONS = ["list","togglePaid","toggleAttend","delete"];
-    if (ADMIN_ACTIONS.includes(action)) {
-      const token = getCookie(req, "adm");
-      const payload = verify(token, process.env.TOKEN_SECRET || "dev");
-      if (!payload) return res.status(401).json({ ok:false, error:"Admin auth required" });
+    const PUBLIC_ACTIONS = ['register','findByWA','getTicket','submitProof'];
+    const needsAdmin = !PUBLIC_ACTIONS.includes(action);
+    if (needsAdmin) {
+      const token = getCookie(req, 'adm');
+      const payload = verify(token, process.env.TOKEN_SECRET || 'dev');
+      if (!payload) return res.status(401).json({ ok:false, error:'Admin auth required' });
+    });
     }
 
     const url = process.env.APPSSCRIPT_URL;
