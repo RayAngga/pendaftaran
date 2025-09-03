@@ -1,24 +1,20 @@
 // assets/js/renderer.js
-// Gambar e-ticket ke canvas offscreen, lalu mengembalikan dataURL PNG.
-// Pakai: const png = await buildTicketImage(rec);  // rec dari server
-//       // atau: const png = await buildTicketImage(rec, { width: 2200, height: 1100 });
-
 export async function buildTicketImage(rec, opt = {}) {
   const {
-    width  = 2200,
+    width = 2200,
     height = 1100,
-    bleed  = 48,     // margin luar untuk frame
-    qrSize = 540,    // ukuran QR di dalam panel putih
-    nameSize = 112,  // ukuran teks nama
+    bleed = 48,
+    qrSize = 540,
+    nameSize = 112,
   } = opt;
 
-  // --- Canvas dasar
   const cvs = document.createElement("canvas");
   cvs.width = width;
   cvs.height = height;
   const ctx = cvs.getContext("2d");
+  ctx.textBaseline = "alphabetic"; // konsisten hitung baseline
 
-  // --- Latar belakang (teal → purple)
+  // --- Background gradient
   const bg = ctx.createLinearGradient(0, 0, width, height);
   bg.addColorStop(0.00, "#0ea5b3");
   bg.addColorStop(0.25, "#0ea5b3");
@@ -27,23 +23,22 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // --- Kartu utama
-  const CARD_R = 44;
+  // --- Card
   const cardX = bleed, cardY = bleed;
   const cardW = width - bleed * 2;
   const cardH = height - bleed * 2;
+  const CARD_R = 44;
 
-  // bayangan lembut
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,.35)";
   ctx.shadowBlur = 40;
   ctx.shadowOffsetY = 18;
   roundRect(ctx, cardX, cardY, cardW, cardH, CARD_R);
-  ctx.fillStyle = "#0f1b29"; // navy very dark
+  ctx.fillStyle = "#0f1b29";
   ctx.fill();
   ctx.restore();
 
-  // garis aksen bawah
+  // Accent stripe
   const stripeH = 12;
   const stripe = ctx.createLinearGradient(cardX, cardY + cardH - stripeH, cardX + cardW, cardY + cardH);
   stripe.addColorStop(0, "#22d3ee");
@@ -51,36 +46,52 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.fillStyle = stripe;
   ctx.fillRect(cardX + 18, cardY + cardH - stripeH - 18, cardW - 36, stripeH);
 
-  // --- Tipografi
-  const TITLE_Y = cardY + 120;
+  // --- Title
   const LEFT = cardX + 64;
+  const TITLE_Y = cardY + 120;
+  const titleText = "RIUNGMUNGPULUNG MABA — E-Ticket";
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 64px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
-  ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", LEFT, TITLE_Y);
+  ctx.fillText(titleText, LEFT, TITLE_Y);
 
-  // Nama
-  ctx.font = `900 ${nameSize}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
-  ctx.fillText(String(rec?.nama || "-"), LEFT, TITLE_Y + 72);
+  // hitung tinggi judul supaya aman
+  const tm = ctx.measureText(titleText);
+  const titleHeight = (tm.actualBoundingBoxAscent || 52) + (tm.actualBoundingBoxDescent || 12);
 
-  // --- Panel QR
-  const panelSize = Math.min(880, Math.min(cardW, cardH) * 0.62);
-  const panelW = Math.max(qrSize + 120, panelSize);
+  // --- QR panel (digambar dulu posisinya)
+  const panelW = Math.max(qrSize + 120, Math.min(880, Math.min(cardW, cardH) * 0.62));
   const panelH = panelW;
   const panelX = cardX + cardW - panelW - 76;
   const panelY = cardY + 160;
-
   roundRect(ctx, panelX, panelY, panelW, panelH, 28);
   ctx.fillStyle = "#ffffff";
   ctx.fill();
 
-  // gambar QR
+  // --- Name (dengan jarak aman dan autoscale)
+  let nameY = TITLE_Y + titleHeight + 28; // JARAK TAMBAHAN di sini
+  let fontPx = nameSize;
+
+  // skala nama jika terlalu panjang untuk kolom kiri
+  const leftMaxW = (panelX - 40) - LEFT; // lebar kolom kiri
+  ctx.font = `900 ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
+  let name = String(rec?.nama || "-");
+  let nameW = ctx.measureText(name).width;
+  if (nameW > leftMaxW) {
+    const scale = Math.max(0.6, leftMaxW / nameW); // minimal 60% biar tetap besar
+    fontPx = Math.round(nameSize * scale);
+  }
+  ctx.font = `900 ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(name, LEFT, nameY);
+
+  // --- QR Image
   const qrCanvas = await generateQR(String(rec?.code || rec?.id || "NA"), qrSize);
   const qx = panelX + (panelW - qrSize) / 2;
   const qy = panelY + (panelH - qrSize) / 2;
   ctx.drawImage(qrCanvas, qx, qy, qrSize, qrSize);
 
-  // --- Kolom kiri (label : nilai)
-  let y = cardY + 220;
+  // --- Rows di kiri
+  let y = nameY + Math.max(64, Math.round(fontPx * 0.6)); // jarak ekstra setelah nama
   const ROW_GAP = 72;
 
   y = drawRow(ctx, "Fakultas",   clean(rec?.fakultas), LEFT, y);
@@ -90,26 +101,24 @@ export async function buildTicketImage(rec, opt = {}) {
   y = drawRow(ctx, "Domisili",   clean(rec?.domisili), LEFT, y);
   y = drawRow(ctx, "Kode",       String(rec?.code || "-"), LEFT, y);
 
-  // --- Dua baris terakhir: label BIASA + pill nilai (label tidak berwarna)
-  // Status
+  // Status (label biasa + pill value)
   y += 8;
   const labelW1 = drawLabel(ctx, "Status:", LEFT, y);
   drawPillValue(ctx, Number(rec?.attended) ? "Hadir" : "Terdaftar",
-                LEFT + labelW1 + 18, y - 50,
-                Number(rec?.attended) ? "#60a5fa" : "#f59e0b");
+    LEFT + labelW1 + 18, y - 50,
+    Number(rec?.attended) ? "#60a5fa" : "#f59e0b");
   y += ROW_GAP;
 
-  // Bayar
-  const labelW2 = drawLabel(ctx, "Bayar:", LEFT, y);
+  // Bayar (label biasa + pill value)
   const paid = Number(rec?.paid) === 1;
+  const labelW2 = drawLabel(ctx, "Bayar:", LEFT, y);
   drawPillValue(ctx, paid ? "Sudah" : "Belum",
-                LEFT + labelW2 + 18, y - 50,
-                paid ? "#34d399" : "#ef4444");
+    LEFT + labelW2 + 18, y - 50,
+    paid ? "#34d399" : "#ef4444");
 
-  // Selesai → kembalikan dataURL
   return cvs.toDataURL("image/png");
 
-  /* ---------------- helpers ---------------- */
+  /* -------- helpers -------- */
 
   function clean(v) {
     return (v === null || v === undefined || v === "") ? "-" : String(v);
@@ -121,18 +130,15 @@ export async function buildTicketImage(rec, opt = {}) {
     if (s.startsWith("62")) s = "0" + s.slice(2);
     if (s[0] === "8") s = "0" + s;
     if (s[0] !== "0" && s.length >= 9 && s.length <= 13) s = "0" + s;
-    // sedikit format agar enak dibaca: 4-4-4
     if (s.length >= 10) s = s.replace(/(\d{4})(\d{4})(\d+)/, "$1-$2-$3");
     return s;
   }
 
-  function foodText(makanan) {
-    if (!makanan && makanan !== 0) return "-";
-    if (typeof makanan === "object") return makanan.label || makanan.value || "-";
-    return String(makanan);
+  function foodText(m) {
+    if (!m && m !== 0) return "-";
+    return typeof m === "object" ? (m.label || m.value || "-") : String(m);
   }
 
-  // label + value biasa (seperti tabel)
   function drawRow(ctx, label, value, x, y) {
     ctx.font = "700 44px system-ui, -apple-system, Segoe UI";
     ctx.fillStyle = "rgba(203,213,225,1)";
@@ -141,10 +147,9 @@ export async function buildTicketImage(rec, opt = {}) {
     ctx.font = "400 48px system-ui, -apple-system, Segoe UI";
     ctx.fillStyle = "#ffffff";
     ctx.fillText(String(value || "-"), x + 230, y);
-    return y + ROW_GAP;
+    return y + 72;
   }
 
-  // label tanpa background, mengembalikan lebar teks label
   function drawLabel(ctx, text, x, y) {
     ctx.font = "700 44px system-ui, -apple-system, Segoe UI";
     ctx.fillStyle = "rgba(203,213,225,1)";
@@ -152,15 +157,12 @@ export async function buildTicketImage(rec, opt = {}) {
     return Math.ceil(ctx.measureText(text).width);
   }
 
-  // pill untuk NILAI (contoh: Hadir / Sudah)
   function drawPillValue(ctx, text, x, y, bg = "#10b981") {
     const padX = 22, padY = 14, h = 56;
     ctx.font = "800 40px system-ui, -apple-system, Segoe UI";
     const w = Math.ceil(ctx.measureText(text).width) + padX * 2;
     roundRect(ctx, x, y, w, h, 999);
-    ctx.fillStyle = bg;
-    ctx.fill();
-
+    ctx.fillStyle = bg; ctx.fill();
     ctx.fillStyle = "#0b1220";
     ctx.fillText(text, x + padX, y + h - padY);
   }
@@ -183,10 +185,9 @@ export async function buildTicketImage(rec, opt = {}) {
         return c;
       }
     } catch {}
-    // fallback kotak hitam 🤷
-    const ctx2 = c.getContext("2d");
-    ctx2.fillStyle = "#fff"; ctx2.fillRect(0, 0, size, size);
-    ctx2.fillStyle = "#000"; ctx2.fillRect(size * .3, size * .3, size * .4, size * .4);
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
+    g.fillStyle = "#000"; g.fillRect(size * .3, size * .3, size * .4, size * .4);
     return c;
   }
 
