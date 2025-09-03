@@ -16,7 +16,7 @@ function text(v){
   if (typeof v === "object") return escapeHtml(v.label || v.value || JSON.stringify(v));
   return escapeHtml(String(v));
 }
-function renderStats(rows){
+export function renderStats(rows){
   const total = rows.length;
   const hadir = rows.filter(r => Number(r.attended) === 1).length;
   const kuotaTotal = Number(window.KUOTA_TOTAL || 0) || null; // opsional
