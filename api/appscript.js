@@ -1,6 +1,11 @@
-
 import crypto from "node:crypto";
+
 function b64url(buf){ return Buffer.from(buf).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,""); }
+function sign(secret, payload){
+  const data = b64url(Buffer.from(JSON.stringify(payload)));
+  const sig  = b64url(crypto.createHmac("sha256", secret).update(data).digest());
+  return `${data}.${sig}`;
+}
 function verify(token, secret){
   try{
     const [data, sig] = String(token||"").split(".");
@@ -10,6 +15,16 @@ function verify(token, secret){
     if (Date.now() > Number(payload.exp)) return null;
     return payload;
   }catch{ return null; }
+}
+function setCookie(res, name, value, maxAgeSec){
+  const attrs = [
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Secure",
+    `Max-Age=${maxAgeSec}`
+  ];
+  res.setHeader("Set-Cookie", `${name}=${value}; ${attrs.join("; ")}`);
 }
 function getCookie(req, name){
   const raw = req.headers.cookie || "";
@@ -22,6 +37,7 @@ async function parseBody(req){
   const raw = Buffer.concat(chunks).toString("utf8") || "{}";
   try{ return JSON.parse(raw); }catch{ return {}; }
 }
+
 export default async function handler(req, res){
   const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
   if (req.method === "OPTIONS") {
@@ -33,24 +49,56 @@ export default async function handler(req, res){
   }
   if (req.method !== "POST") {
     res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
     return res.status(405).json({ ok:false, error:"Method Not Allowed" });
   }
+
   res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
   res.setHeader("Pragma","no-cache"); res.setHeader("Expires","0");
+
   const body = await parseBody(req);
+  const { action, payload={} } = body || {};
+
   try{
-    const { action } = body || {};
-    const PUBLIC_ACTIONS = ['register','findByWA','getTicket','submitProof'];
-    const needsAdmin = !PUBLIC_ACTIONS.includes(action);
-    if (needsAdmin) {
-      const token = getCookie(req, 'adm');
-      const payload = verify(token, process.env.TOKEN_SECRET || 'dev');
-      if (!payload) { res.setHeader("Access-Control-Allow-Origin", allowedOrigin); return res.status(401).json({ ok:false, error:'Admin auth required' }); }
+    // ---- ADMIN LOGIN / LOGOUT (tangani di server, bukan Apps Script) ----
+    if (action === "adminLogin") {
+      const pass = String(payload.pass||"");
+      const expected = process.env.ADMIN_PASS || process.env.TOKEN_SECRET || "";
+      if (!expected || pass !== expected) {
+        res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+        return res.status(401).json({ ok:false, error:"Wrong passcode" });
+      }
+      const secret = process.env.TOKEN_SECRET || "dev";
+      const token  = sign(secret, { role:"admin", exp: Date.now() + 12*60*60*1000 });
+      setCookie(res, "adm", token, 12*60*60); // 12 jam
+      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+      return res.status(200).json({ ok:true });
     }
+
+    if (action === "adminLogout") {
+      setCookie(res, "adm", "", 0);
+      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+      return res.status(200).json({ ok:true });
+    }
+
+    // ---- Proteksi admin untuk aksi non-publik ----
+    const PUBLIC_ACTIONS = ["register","findByWA","getTicket","submitProof"];
+    if (!PUBLIC_ACTIONS.includes(action)) {
+      const token = getCookie(req, "adm");
+      const payload = verify(token, process.env.TOKEN_SECRET || "dev");
+      if (!payload) {
+        res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+        return res.status(401).json({ ok:false, error:"Admin auth required" });
+      }
+    }
+
+    // ---- Teruskan ke Apps Script untuk aksi lain ----
     const url = process.env.APPSSCRIPT_URL;
     const secret = process.env.APPSSCRIPT_SECRET;
-    if(!url || !secret) { res.setHeader("Access-Control-Allow-Origin", allowedOrigin); return res.status(500).json({ ok:false, error:"APPSSCRIPT_URL/SECRET not set" }); }
+    if(!url || !secret) {
+      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+      return res.status(500).json({ ok:false, error:"APPSSCRIPT_URL/SECRET not set" });
+    }
+
     const r = await fetch(url, {
       method: "POST",
       cache: "no-store",
@@ -58,16 +106,16 @@ export default async function handler(req, res){
       body: JSON.stringify({ ...(body||{}), secret })
     });
     const raw = await r.text();
-    let data; try { data = JSON.parse(raw); } catch {
+    let data; try { data = JSON.parse(raw); }
+    catch {
       res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      return res.status(r.status || 500).json({ ok:false, error: `Apps Script returned non-JSON (${r.status}): ${raw.slice(0,200)}` });
+      return res.status(r.status || 500).json({ ok:false, error:`Apps Script returned non-JSON (${r.status}): ${raw.slice(0,200)}`});
     }
     res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
     return res.status(200).json(data);
+
   }catch(e){
     res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
     return res.status(500).json({ ok:false, error:String(e) });
   }
 }
