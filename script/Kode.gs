@@ -1,5 +1,5 @@
 /** ====== KONFIG ====== */
-const SECRET = 'CHANGE_ME_SECRET';
+const SECRET = '56a257152fcd9fa3b56ebe928a24fc79d76d98e3f552560ee7a800dbfd42fc71';
 const SHEET_NAME = 'pendaftaran maba';
 const PROOF_FOLDER = 'bukti';
 
