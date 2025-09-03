@@ -1,7 +1,8 @@
 import { bindNav } from "./nav.js";
 import { bindRegister } from "./register.js";
 import { bindPayment } from "./payment.js";
-import { bindAdmin } from "./admin.js";             // ← penting
+import { bindAdmin } from "./admin.js";
+import { startScan, stopScan } from "./scanner.js";             // ← penting
 import { findTicket, downloadTicketPNG } from "./ticket.js";
 
 // helper kecil biar aman pas addEventListener
@@ -34,6 +35,10 @@ on("btn-download-qr", "click", () => {
   a.click();
 });
 on("btn-print", "click", () => window.print());
+
+on("scan-start","click", startScan);
+on("scan-stop","click", stopScan);
+
 
 // tekan ENTER pada input tiket langsung cari
 const tSearch = document.getElementById("t-search");

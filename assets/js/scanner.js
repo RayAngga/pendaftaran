@@ -1,4 +1,4 @@
-import { el } from "./utils.js";
+import { el, showOverlay, hideOverlay } from "./utils.js";
 import { state } from "./state.js";
 import { renderStats, renderAdminTable } from "./admin.js";
 import { api } from "./api.js";
@@ -22,6 +22,7 @@ function loopScan(){
   tick();
 }
 async function handleScanPayload(data){
+  showOverlay("Memindai…","Memuat data dari Sheet", 0);
   try{
     let s=""; try{s=JSON.parse(data).code||"";}catch{ s=data; }
     const { rec } = await api.getTicket(s);
@@ -34,5 +35,5 @@ async function handleScanPayload(data){
     el("scan-result").innerHTML=`<div class="space-y-1">
       <div><b>Kode:</b> ${rec.code}</div><div><b>Nama:</b> ${rec.nama}</div><div><b>WA:</b> ${rec.wa}</div>
       <div><b>Status:</b> <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Hadir</span></div></div>`;
-  }catch(e){ el("scan-result").textContent = "Error: " + e.message; }
+  }catch(e){ el("scan-result").textContent = "Error: " + e.message; } finally { hideOverlay(); }
 }
