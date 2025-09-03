@@ -1,7 +1,12 @@
+// /api/appscript.js — Vercel Serverless Function (Node.js, ESM)
+// - Semua request ke Apps Script akan disertai { secret: APPS_SCRIPT_SECRET }.
+// - Aksi terproteksi (list, delete, togglePaid, toggleAttend) tetap butuh cookie adm=1.
+// - adminLogin/adminLogout mengelola cookie adm=1 (HttpOnly, SameSite=Lax, Secure hanya di HTTPS).
+// - Selalu balas JSON (termasuk saat error). Ada action "diag" untuk cek ENV & status login.
+
 const fetchFn = globalThis.fetch;
 
 const PROTECTED_ACTIONS = new Set(['list', 'delete', 'togglePaid', 'toggleAttend']);
-const PUBLIC_ACTIONS    = new Set(['register', 'findByWA', 'getTicket', 'submitProof', 'info']);
 
 function send(res, status, obj) {
   res.statusCode = status;
@@ -94,20 +99,17 @@ export default async function handler(req, res) {
     const url = process.env.APPS_SCRIPT_URL;
     if (!url) return send(res, 500, { ok:false, error:'APPS_SCRIPT_URL not set' });
 
+    // Wajib cookie untuk aksi terproteksi
     const cookies = parseCookies(req.headers.cookie || '');
-    const isProtected = PROTECTED_ACTIONS.has(action);
-    if (isProtected && cookies['adm'] !== '1') {
+    if (PROTECTED_ACTIONS.has(action) && cookies['adm'] !== '1') {
       return send(res, 401, { ok:false, error:'Unauthorized' });
     }
 
-    // Siapkan body untuk Apps Script
-    const forward = { action, payload };
-    if (isProtected) {
-      const appsSecret = process.env.APPS_SCRIPT_SECRET;
-      if (!appsSecret) return send(res, 500, { ok:false, error:'APPS_SCRIPT_SECRET not set' });
-      // Apps Script kamu mengecek req.secret (top-level), jadi tambahkan di sini
-      forward.secret = appsSecret;
-    }
+    // Selalu sertakan secret untuk SEMUA action (karena Apps Script saat ini mengecek req.secret)
+    const appsSecret = process.env.APPS_SCRIPT_SECRET;
+    if (!appsSecret) return send(res, 500, { ok:false, error:'APPS_SCRIPT_SECRET not set' });
+
+    const forward = { action, payload, secret: appsSecret };
 
     let fr;
     try {
