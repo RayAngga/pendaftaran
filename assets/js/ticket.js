@@ -1,52 +1,223 @@
-
-import { el } from "./utils.js";
-import { state } from "./state.js";
-import { drawQR } from "./qr.js";
-import { buildTicketImage } from "./renderer.js";
-import { safeDownload } from "./utils.js";
-import { TICKET_THEME } from "./config.js";
+// assets/js/ticket.js
+import { $, el } from "./utils.js";
 import { api } from "./api.js";
 
-function triggerSearchWith(q){ const inp = el("t-search"); if (inp) inp.value = q || inp.value || ""; findTicket(); }
-function autoFromStorageOrURL(){
-  let q = sessionStorage.getItem("lastTicketQuery") || "";
-  if (!q) { try { const u = new URL(location.href); q = u.searchParams.get("q") || ""; if (!q && location.hash.startsWith("#ticket=")) { q = decodeURIComponent(location.hash.split("=",2)[1]||""); } } catch {} }
-  if (q) { triggerSearchWith(q); sessionStorage.removeItem("lastTicketQuery"); }
+// ===== Util kecil =====
+function waDisplay(v) {
+  let s = String(v || "").replace(/[^\d]/g, "");
+  if (!s) return "";
+  if (s.startsWith("62")) s = "0" + s.slice(2);
+  if (s[0] === "8") s = "0" + s;
+  if (s[0] !== "0" && s.length >= 9 && s.length <= 13) s = "0" + s;
+  return s;
 }
-window.addEventListener("ticket:show", autoFromStorageOrURL);
-document.addEventListener("DOMContentLoaded", () => { const sec = document.getElementById("section-ticket"); if (sec && !sec.classList.contains("hidden")) autoFromStorageOrURL(); });
+function isPaid(rec){ return Number(rec?.paid) === 1; }
 
-export async function findTicket(){
-  const q=el("t-search").value.trim(); if(!q) return setTicketMsg("Masukkan kode pendaftaran atau nomor WA.","text-slate-300");
-  setTicketMsg("Mencari tiket…","text-slate-300");
-  try{
-    const { rec } = await api.getTicket(q);
-    if(!rec) return setTicketMsg("Tiket tidak ditemukan.","text-red-400");
-    if(!Number(rec.paid) || !rec.code) return setTicketMsg("Belum upload bukti transfer.","text-yellow-300");
-    sessionStorage.setItem("lastTicketQuery", rec.code || q);
-    renderTicket(rec); setTicketMsg("","");
-  }catch(e){ setTicketMsg("Gagal mencari tiket: " + e.message, "text-red-400"); }
+// Buat QR ke offscreen canvas (gunakan qrcode atau qrious bila ada)
+async function makeQRCanvas(text, size = 340, light = "#ffffff", dark = "#000000") {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+
+  // 1) qrcode
+  try {
+    if (window.QRCode?.toCanvas) {
+      await window.QRCode.toCanvas(c, text, {
+        width: size,
+        margin: 1,
+        errorCorrectionLevel: "H",
+        color: { light, dark }
+      });
+      return c;
+    }
+  } catch {}
+
+  // 2) QRious
+  try {
+    if (window.QRious) {
+      new window.QRious({
+        element: c,
+        value: text,
+        size,
+        background: light,
+        foreground: dark,
+        level: "H",
+      });
+      return c;
+    }
+  } catch {}
+
+  // 3) fallback manual (kotak putih)
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = light; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = dark;
+  ctx.fillRect(size*0.4, size*0.4, size*0.2, size*0.2);
+  return c;
 }
-export function renderTicket(rec){
-  const card=el("ticket-card"); const msg=el("ticket-msg"); card.classList.remove("hidden"); msg.textContent="";
-  el("t-name").textContent=rec.nama||"-"; el("t-code").textContent=rec.code||"(belum ada)"; el("t-wa").textContent=rec.wa||"-";
-  const makananText = typeof rec.makanan === "object" && rec.makanan !== null ? (rec.makanan.label || rec.makanan.value || "-") : (rec.makanan || "-");
-  el("t-makanan").textContent = makananText;
-  el("t-fakultas").textContent=rec.fakultas||"-"; el("t-prodi").textContent=rec.prodi||"-"; el("t-domisili").textContent=rec.domisili||"-";
-  const st=el("t-status"); st.textContent=Number(rec.attended)?"Hadir":"Terdaftar"; st.className=`badge ${Number(rec.attended)?'ok':'warn'}`;
-  const pd=el("t-paid"); pd.textContent=Number(rec.paid)?"Sudah":"Belum"; pd.className=`badge ${Number(rec.paid)?'ok':'warn'}`;
-  drawQR(rec.code).catch(()=>{});
+
+// Gambar rounded-rect gampang
+function roundRect(ctx, x, y, w, h, r){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x,   y+h, rr);
+  ctx.arcTo(x,   y+h, x,   y,   rr);
+  ctx.arcTo(x,   y,   x+w, y,   rr);
+  ctx.closePath();
 }
-export function setTicketMsg(t,c){ const m=el("ticket-msg"); m.className=`text-sm ${c}`; m.textContent=t; }
-export async function downloadTicketPNG(){
-  const paidText=(el('t-paid').textContent||'').toLowerCase();
-  if(!/sudah/.test(paidText)){ alert('Unduh hanya untuk peserta yang sudah bayar.'); return; }
-  const codeText = (el("t-code").textContent || "").trim(); if(!codeText){ alert("Tiket belum siap."); return; }
-  const rec = state.regs?.find?.(r=> r.code===codeText) || {
-    code: codeText, nama: el("t-name").textContent||"", fakultas: el("t-fakultas").textContent||"", prodi: el("t-prodi").textContent||"",
-    wa: el("t-wa").textContent||"", makanan:{ label: el("t-makanan").textContent || "-" }, domisili: el("t-domisili").textContent||"",
-    paid:/sudah/i.test(el("t-paid").textContent||""), attended:/hadir/i.test(el("t-status").textContent||"")
+
+// Core: render kartu tiket ke canvas
+async function renderTicketCard(rec){
+  const wrap = el("ticket-wrap");
+  const cv   = el("ticket-canvas");
+  if (!wrap || !cv) return;
+
+  const DPR = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  const W = 1200, H = 680;             // resolusi kerja (tajam untuk unduh)
+  cv.width = W; cv.height = H;
+  cv.style.width  = "100%";            // responsive
+  cv.style.maxWidth = "900px";
+  cv.style.height = (H/W*100) + "%";
+
+  const ctx = cv.getContext("2d");
+
+  // Background gelap halaman
+  ctx.fillStyle = "#0b1220";
+  ctx.fillRect(0,0,W,H);
+
+  // Kartu gradient + shadow
+  const pad = 28;
+  const cardX = pad, cardY = pad;
+  const cardW = W - pad*2, cardH = H - pad*2;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur  = 20;
+  ctx.shadowOffsetY = 8;
+
+  const grad = ctx.createLinearGradient(cardX, cardY, cardX+cardW, cardY+cardH);
+  grad.addColorStop(0.00, "#0ea5e9");  // sky-500
+  grad.addColorStop(0.55, "#0ea5e9");  // ke teal
+  grad.addColorStop(0.70, "#2563eb");  // blue-600
+  grad.addColorStop(1.00, "#a21caf");  // fuchsia-800
+
+  roundRect(ctx, cardX, cardY, cardW, cardH, 34);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+
+  // Panel QR putih
+  const qrBoxW = 370, qrBoxH = 430;
+  const qrBoxX = cardX + cardW - qrBoxW - 40;
+  const qrBoxY = cardY + 80;
+
+  roundRect(ctx, qrBoxX, qrBoxY, qrBoxW, qrBoxH, 18);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+
+  const qrCanvas = await makeQRCanvas(rec.code || rec.id || "NO-CODE", 320, "#ffffff", "#000000");
+  ctx.drawImage(qrCanvas, qrBoxX + (qrBoxW-320)/2, qrBoxY + (qrBoxH-320)/2 - 10, 320, 320);
+
+  // Teks — kiri
+  const leftX = cardX + 48;
+  let y = cardY + 88;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 42px 'Inter', system-ui, -apple-system, Segoe UI, Roboto";
+  ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", leftX, y);
+
+  y += 56;
+  ctx.font = "700 34px 'Inter', system-ui";
+  ctx.fillText(String(rec.nama || "-"), leftX, y);
+
+  const line = (label, value) => {
+    y += 46;
+    ctx.font = "600 20px 'Inter', system-ui";
+    ctx.fillStyle = "#e5e7eb";
+    ctx.fillText(label, leftX, y);
+
+    ctx.font = "400 22px 'Inter', system-ui";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(String(value || "-"), leftX + 110, y);
   };
-  const dataUrl = await buildTicketImage(rec, { theme:TICKET_THEME, width:2200, height:1100, bleed:48, qrSize:420 });
-  safeDownload(dataUrl, `${rec.code}_ticket.png`);
+
+  const waShown = waDisplay(rec.wa || "");
+  line("Kode:", rec.code || "-");
+  line("WA:", waShown || rec.wa || "-");
+  line("Makanan:", rec.makanan || "-");
+
+  // Badge status
+  y += 42;
+  const drawBadge = (text, bg, fg) => {
+    const padX = 16, padY = 10;
+    ctx.font = "700 20px 'Inter', system-ui";
+    const w = ctx.measureText(text).width + padX*2;
+    const h = 36;
+    roundRect(ctx, leftX, y, w, h, 999);
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.fillStyle = fg; ctx.fillText(text, leftX + padX, y + h - padY);
+    return w + 12; // return width for chaining
+  };
+
+  let dx = 0;
+  dx += drawBadge("Terdaftar", "#f59e0b", "#111827"); // amber
+  const paid = isPaid(rec);
+  drawBadge(paid ? "Sudah" : "Belum", paid ? "#10b981" : "#ef4444", "#0b1220");
+
+  // Simpan rec terakhir untuk nama file download
+  el("__lastTicketCode")?.remove();
+  const hidden = document.createElement("input");
+  hidden.type = "hidden"; hidden.id = "__lastTicketCode";
+  hidden.value = String(rec.code || rec.id || "ticket");
+  wrap.appendChild(hidden);
+
+  // Tampilkan area preview
+  wrap.classList.remove("hidden");
+  return cv;
+}
+
+// ====== Public API ======
+export async function findTicket(){
+  const box = el("ticket-wrap");
+  const msg = el("ticket-msg");
+  if (msg) { msg.className="text-sm text-red-400"; msg.textContent=""; }
+
+  const raw = $("#t-search")?.value?.trim();
+  if (!raw) { if(msg){ msg.textContent="Masukkan kode atau nomor WA."; } return; }
+
+  try{
+    // Backend sudah kebal format WA
+    const { rec } = await api.getTicket(raw);
+    if (!rec) { if(msg){ msg.textContent="Data tidak ditemukan."; } box?.classList.add("hidden"); return; }
+
+    await renderTicketCard(rec);
+
+  }catch(e){
+    if (msg){ msg.textContent = "Gagal mengambil tiket: " + (e?.message || e); }
+    box?.classList.add("hidden");
+  }
+}
+
+export function bindTicket(){
+  // Sembunyikan tombol lama jika masih ada di DOM
+  el("btn-print")?.classList.add("hidden");
+  el("btn-qr-download")?.classList.add("hidden");
+
+  // Tombol unduh PNG
+  const dl = el("t-download");
+  if (dl) {
+    dl.addEventListener("click", ()=>{
+      const cv = el("ticket-canvas"); if (!cv) return;
+      const code = el("__lastTicketCode")?.value || "ticket";
+      const a = document.createElement("a");
+      a.href = cv.toDataURL("image/png");
+      a.download = `${code}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+  }
+
+  // Tombol cari tiket
+  const btnFind = el("t-find") || el("btn-ticket-find");
+  btnFind?.addEventListener("click", findTicket);
 }
