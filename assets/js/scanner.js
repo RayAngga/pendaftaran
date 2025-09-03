@@ -3,6 +3,38 @@ import { state } from "./state.js";
 import { renderStats, renderAdminTable } from "./admin.js";
 import { api } from "./api.js";
 export async function startScan(){
+  stopScan();
+  el("scan-msg").textContent="Meminta izin kamera…";
+  try{
+    if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+      throw new Error("Browser tidak mendukung kamera (getUserMedia).");
+    }
+    // Try back camera, then any camera
+    const base = { width:{ideal:1280}, height:{ideal:720} };
+    const trials = [
+      { video:{ ...base, facingMode:{ideal:"environment"} }, audio:false },
+      { video:true, audio:false }
+    ];
+    let stream=null, lastErr=null;
+    for(const c of trials){
+      try{ stream = await navigator.mediaDevices.getUserMedia(c); break; }
+      catch(e){ lastErr=e; }
+    }
+    if(!stream) throw lastErr || new Error("Tidak bisa mengakses kamera.");
+
+    const v = el("scan-video");
+    v.setAttribute("playsinline","");
+    v.muted = true;
+    v.srcObject = stream;
+    await v.play();
+    el("scan-msg").textContent="Kamera aktif.";
+    loopScan();
+  }catch(e){
+    const httpsNote = (location.protocol !== "https:" && location.hostname !== "localhost")
+      ? " Situs harus diakses via HTTPS atau localhost." : "";
+    el("scan-msg").innerHTML = "Gagal akses kamera. " + (e?.message||e) + httpsNote;
+    console.error(e);
+  }
   stopScan(); el("scan-msg").textContent="Menginisialisasi kamera...";
   try{
     const constraints = { video: { facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720} }, audio:false };

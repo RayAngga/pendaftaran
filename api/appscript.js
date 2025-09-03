@@ -1,121 +1,92 @@
-import crypto from "node:crypto";
+// /api/appscript.js — Vercel Serverless Function (Node.js)
+// Handles adminLogin (sets cookie) and proxies other actions to Google Apps Script.
+//
+// ENV needed on Vercel:
+// - ADMIN_PASSCODE="your-secret"
+// - APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfycbx.../exec"  (POST JSON: {action, payload})
+//
+// This function expects POST with JSON: { action, payload }
 
-function b64url(buf){ return Buffer.from(buf).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,""); }
-function sign(secret, payload){
-  const data = b64url(Buffer.from(JSON.stringify(payload)));
-  const sig  = b64url(crypto.createHmac("sha256", secret).update(data).digest());
-  return `${data}.${sig}`;
+const fetch = global.fetch || (await import('node-fetch')).default;
+
+function parseCookies(cookieHeader=''){
+  const out = {};
+  cookieHeader.split(';').forEach(p=>{
+    const i = p.indexOf('=');
+    if(i>0){
+      const k = p.slice(0,i).trim();
+      const v = decodeURIComponent(p.slice(i+1).trim());
+      out[k]=v;
+    }
+  });
+  return out;
 }
-function verify(token, secret){
+
+function setCookie(res, name, value, maxAgeSec=86400*7){
+  const cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSec}; HttpOnly; Secure; SameSite=Lax`;
+  res.setHeader('Set-Cookie', cookie);
+}
+
+module.exports = async (req, res) => {
   try{
-    const [data, sig] = String(token||"").split(".");
-    const expSig = b64url(crypto.createHmac("sha256", secret).update(data).digest());
-    if (sig !== expSig) return null;
-    const payload = JSON.parse(Buffer.from(data.replace(/-/g,"+").replace(/_/g,"/"),"base64").toString("utf8"));
-    if (Date.now() > Number(payload.exp)) return null;
-    return payload;
-  }catch{ return null; }
-}
-function setCookie(res, name, value, maxAgeSec){
-  const attrs = [
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    "Secure",
-    `Max-Age=${maxAgeSec}`
-  ];
-  res.setHeader("Set-Cookie", `${name}=${value}; ${attrs.join("; ")}`);
-}
-function getCookie(req, name){
-  const raw = req.headers.cookie || "";
-  const found = raw.split(";").map(s=>s.trim().split("=")).find(([k])=>k===name);
-  return found ? decodeURIComponent(found[1] || "") : "";
-}
-async function parseBody(req){
-  if (req.body) return req.body;
-  const chunks=[]; for await (const ch of req) chunks.push(ch);
-  const raw = Buffer.concat(chunks).toString("utf8") || "{}";
-  try{ return JSON.parse(raw); }catch{ return {}; }
-}
+    if (req.method !== 'POST'){
+      res.status(405).json({ ok:false, error:'Method Not Allowed' });
+      return;
+    }
+    const { action, payload } = req.body || {};
+    if(!action){
+      res.status(400).json({ ok:false, error:'Missing action' });
+      return;
+    }
 
-export default async function handler(req, res){
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
-    return res.status(204).end();
-  }
-  if (req.method !== "POST") {
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    return res.status(405).json({ ok:false, error:"Method Not Allowed" });
-  }
-
-  res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
-  res.setHeader("Pragma","no-cache"); res.setHeader("Expires","0");
-
-  const body = await parseBody(req);
-  const { action, payload={} } = body || {};
-
-  try{
-    // ---- ADMIN LOGIN / LOGOUT (tangani di server, bukan Apps Script) ----
-    if (action === "adminLogin") {
-      const pass = String(payload.pass||"");
-      const expected = process.env.ADMIN_PASS || process.env.TOKEN_SECRET || "";
-      if (!expected || pass !== expected) {
-        res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-        return res.status(401).json({ ok:false, error:"Wrong passcode" });
+    // Admin login: check passcode, set cookie
+    if(action === 'adminLogin'){
+      const pass = String(payload?.pass || '');
+      if(!process.env.ADMIN_PASSCODE){
+        res.status(500).json({ ok:false, error:'ADMIN_PASSCODE not set' });
+        return;
       }
-      const secret = process.env.TOKEN_SECRET || "dev";
-      const token  = sign(secret, { role:"admin", exp: Date.now() + 12*60*60*1000 });
-      setCookie(res, "adm", token, 12*60*60); // 12 jam
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      return res.status(200).json({ ok:true });
-    }
-
-    if (action === "adminLogout") {
-      setCookie(res, "adm", "", 0);
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      return res.status(200).json({ ok:true });
-    }
-
-    // ---- Proteksi admin untuk aksi non-publik ----
-    const PUBLIC_ACTIONS = ["register","findByWA","getTicket","submitProof"];
-    if (!PUBLIC_ACTIONS.includes(action)) {
-      const token = getCookie(req, "adm");
-      const payload = verify(token, process.env.TOKEN_SECRET || "dev");
-      if (!payload) {
-        res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-        return res.status(401).json({ ok:false, error:"Admin auth required" });
+      if(pass !== process.env.ADMIN_PASSCODE){
+        res.status(401).json({ ok:false, error:'Invalid passcode' });
+        return;
       }
+      setCookie(res, 'adm', '1', 86400*3);
+      res.status(200).json({ ok:true });
+      return;
     }
 
-    // ---- Teruskan ke Apps Script untuk aksi lain ----
-    const url = process.env.APPSSCRIPT_URL;
-    const secret = process.env.APPSSCRIPT_SECRET;
-    if(!url || !secret) {
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      return res.status(500).json({ ok:false, error:"APPSSCRIPT_URL/SECRET not set" });
+    // For other actions, require cookie adm=1
+    const hasAdm = parseCookies(req.headers.cookie || '')['adm'] === '1';
+    if(!hasAdm && ['list','delete','togglePaid','toggleAttend'].includes(action)){
+      res.status(401).json({ ok:false, error:'Unauthorized' });
+      return;
     }
 
-    const r = await fetch(url, {
-      method: "POST",
-      cache: "no-store",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ ...(body||{}), secret })
+    // Proxy to Apps Script (if provided)
+    const url = process.env.APPS_SCRIPT_URL;
+    if(!url){
+      res.status(500).json({ ok:false, error:'APPS_SCRIPT_URL not set' });
+      return;
+    }
+
+    const fr = await fetch(url, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ action, payload })
     });
-    const raw = await r.text();
-    let data; try { data = JSON.parse(raw); }
-    catch {
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      return res.status(r.status || 500).json({ ok:false, error:`Apps Script returned non-JSON (${r.status}): ${raw.slice(0,200)}`});
-    }
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    return res.status(200).json(data);
+    const ct = fr.headers.get('content-type') || '';
+    const text = await fr.text();
+    // Try JSON first
+    let data;
+    try{ data = JSON.parse(text); }
+    catch{ data = { ok: fr.ok, raw: text }; }
 
+    if(!fr.ok || data?.ok===false){
+      res.status(fr.status || 500).json({ ok:false, error: data?.error || text || 'Proxy error' });
+      return;
+    }
+    res.status(200).json(data);
   }catch(e){
-    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-    return res.status(500).json({ ok:false, error:String(e) });
+    res.status(500).json({ ok:false, error: e?.message || String(e) });
   }
-}
+};
