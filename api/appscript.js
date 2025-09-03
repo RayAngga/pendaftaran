@@ -1,15 +1,7 @@
-// /api/appscript.js — Vercel Serverless Function (Node.js, ESM)
-// - Public actions: register, findByWA, getTicket, submitProof (TIDAK butuh login)
-// - Protected actions: list, delete, togglePaid, toggleAttend (BUTUH login adm=1)
-// - adminLogin/adminLogout untuk set/hapus cookie adm
-// - Proxy ke APPS_SCRIPT_URL dan SELALU balas JSON (non-JSON dibungkus error JSON)
-// - Aksi "diag" untuk cek ENV & status login
-// - Header no-cache untuk API
-
 const fetchFn = globalThis.fetch;
 
 const PROTECTED_ACTIONS = new Set(['list', 'delete', 'togglePaid', 'toggleAttend']);
-const PUBLIC_ACTIONS    = new Set(['register', 'findByWA', 'getTicket', 'submitProof']);
+const PUBLIC_ACTIONS    = new Set(['register', 'findByWA', 'getTicket', 'submitProof', 'info']);
 
 function send(res, status, obj) {
   res.statusCode = status;
@@ -40,14 +32,14 @@ function setAuthCookie(req, res, on = true) {
     on ? 'Max-Age=259200' : 'Max-Age=0', // 3 hari / hapus
     'HttpOnly',
     'SameSite=Lax',
-    isHttps ? 'Secure' : ''              // di localhost (http) jangan Secure
+    isHttps ? 'Secure' : ''              // di localhost http: jangan Secure
   ].filter(Boolean);
   res.setHeader('Set-Cookie', `adm=${on ? '1' : ''}; ${parts.join('; ')}`);
 }
 
 function readJson(req) {
   return new Promise((resolve) => {
-    if (req.body != null) return resolve(req.body); // @vercel/node kadang sudah parse JSON
+    if (req.body != null) return resolve(req.body); // @vercel/node kadang sudah parse
     let data = '';
     req.on('data', (c) => (data += c));
     req.on('end', () => {
@@ -71,7 +63,7 @@ export default async function handler(req, res) {
     const payload = body?.payload;
     if (!action) return send(res, 400, { ok:false, error:'Missing action' });
 
-    // Diagnostik
+    // ===== DIAG =====
     if (action === 'diag') {
       const cookies = parseCookies(req.headers.cookie || '');
       return send(res, 200, {
@@ -79,43 +71,50 @@ export default async function handler(req, res) {
         env: process.env.VERCEL_ENV || 'unknown',
         hasAdminPass: Boolean(process.env.ADMIN_PASSCODE),
         hasAppsUrl: Boolean(process.env.APPS_SCRIPT_URL),
+        hasAppsSecret: Boolean(process.env.APPS_SCRIPT_SECRET),
         isAdmin: cookies['adm'] === '1'
       });
     }
 
-    // Login
+    // ===== LOGIN / LOGOUT =====
     if (action === 'adminLogin') {
       const pass   = String(payload?.pass || '');
       const secret = process.env.ADMIN_PASSCODE || '';
-      if (!secret)           return send(res, 500, { ok:false, error:'ADMIN_PASSCODE not set' });
-      if (pass !== secret)   return send(res, 401, { ok:false, error:'Invalid passcode' });
+      if (!secret)            return send(res, 500, { ok:false, error:'ADMIN_PASSCODE not set' });
+      if (pass !== secret)    return send(res, 401, { ok:false, error:'Invalid passcode' });
       setAuthCookie(req, res, true);
       return send(res, 200, { ok:true });
     }
-
-    // Logout
     if (action === 'adminLogout') {
       setAuthCookie(req, res, false);
       return send(res, 200, { ok:true });
     }
 
-    // Proxy ke Apps Script
+    // ===== PROXY KE APPS SCRIPT =====
     const url = process.env.APPS_SCRIPT_URL;
     if (!url) return send(res, 500, { ok:false, error:'APPS_SCRIPT_URL not set' });
 
-    // Proteksi hanya untuk aksi yang ada di PROTECTED_ACTIONS
-    const hasAdm = parseCookies(req.headers.cookie || '')['adm'] === '1';
-    if (PROTECTED_ACTIONS.has(action) && !hasAdm) {
+    const cookies = parseCookies(req.headers.cookie || '');
+    const isProtected = PROTECTED_ACTIONS.has(action);
+    if (isProtected && cookies['adm'] !== '1') {
       return send(res, 401, { ok:false, error:'Unauthorized' });
     }
-    // Catatan: PUBLIC_ACTIONS tidak dicek cookie; aksi lain (di luar 2 set) tetap diproxy apa adanya.
+
+    // Siapkan body untuk Apps Script
+    const forward = { action, payload };
+    if (isProtected) {
+      const appsSecret = process.env.APPS_SCRIPT_SECRET;
+      if (!appsSecret) return send(res, 500, { ok:false, error:'APPS_SCRIPT_SECRET not set' });
+      // Apps Script kamu mengecek req.secret (top-level), jadi tambahkan di sini
+      forward.secret = appsSecret;
+    }
 
     let fr;
     try {
       fr = await fetchFn(url, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ action, payload })
+        body: JSON.stringify(forward)
       });
     } catch (e) {
       return send(res, 502, { ok:false, error:`Fetch to Apps Script failed: ${e?.message || e}` });
