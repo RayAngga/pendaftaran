@@ -1,4 +1,4 @@
-import { el, $ } from "./utils.js";
+import { el, $, showOverlay, hideOverlay, showPopup } from "./utils.js";
 import { state, saveRegs } from "./state.js";
 import { renderStats } from "./admin.js";
 import { findTicket } from "./ticket.js";
