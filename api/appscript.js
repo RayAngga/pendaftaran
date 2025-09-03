@@ -1,9 +1,11 @@
-// /api/appscript.js — Vercel Serverless Function (Node.js)
-// ENV on Vercel:
-// - ADMIN_PASSCODE="your-secret"
-// - APPS_SCRIPT_URL="https://script.google.com/macros/s/AKfyc.../exec"
+// /api/appscript.js — Vercel Serverless Function (Node.js, ESM)
+const fetchFn = globalThis.fetch;
 
-const fetch = globalThis.fetch; // Node 18+ on Vercel
+function send(res, status, obj) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(obj));
+}
 
 function parseCookies(cookieHeader = '') {
   const out = {};
@@ -20,82 +22,80 @@ function parseCookies(cookieHeader = '') {
 
 function setAuthCookie(req, res, on = true) {
   const isHttps = (req.headers['x-forwarded-proto'] || '').includes('https');
-  const attrs = [
+  const parts = [
     'Path=/',
-    on ? 'Max-Age=259200' : 'Max-Age=0', // 3 hari / hapus
+    on ? 'Max-Age=259200' : 'Max-Age=0',
     'HttpOnly',
     'SameSite=Lax',
-    isHttps ? 'Secure' : ''              // jangan Secure saat localhost (http)
-  ].filter(Boolean).join('; ');
-  const val = on ? '1' : '';
-  res.setHeader('Set-Cookie', `adm=${encodeURIComponent(val)}; ${attrs}`);
+    isHttps ? 'Secure' : ''
+  ].filter(Boolean);
+  res.setHeader('Set-Cookie', `adm=${on ? '1' : ''}; ${parts.join('; ')}`);
 }
 
-module.exports = async (req, res) => {
+function readJson(req) {
+  return new Promise((resolve) => {
+    if (req.body != null) return resolve(req.body);
+    let data = '';
+    req.on('data', (c) => (data += c));
+    req.on('end', () => {
+      try { resolve(JSON.parse(data || '{}')); }
+      catch { resolve({}); }
+    });
+  });
+}
+
+export default async function handler(req, res) {
   try {
-    if (req.method !== 'POST') {
-      return res.status(405).json({ ok: false, error: 'Method Not Allowed' });
-    }
+    if (req.method !== 'POST') return send(res, 405, { ok:false, error:'Method Not Allowed' });
 
-    // pastikan Vercel parse JSON body
-    const { action, payload } = req.body || {};
-    if (!action) return res.status(400).json({ ok: false, error: 'Missing action' });
+    const body = await readJson(req);
+    const action  = body?.action;
+    const payload = body?.payload;
+    if (!action) return send(res, 400, { ok:false, error:'Missing action' });
 
-    // ===== LOGIN =====
     if (action === 'adminLogin') {
       const pass = String(payload?.pass || '');
       const secret = process.env.ADMIN_PASSCODE || '';
-      if (!secret) return res.status(500).json({ ok: false, error: 'ADMIN_PASSCODE not set' });
-      if (pass !== secret) return res.status(401).json({ ok: false, error: 'Invalid passcode' });
+      if (!secret) return send(res, 500, { ok:false, error:'ADMIN_PASSCODE not set' });
+      if (pass !== secret) return send(res, 401, { ok:false, error:'Invalid passcode' });
       setAuthCookie(req, res, true);
-      return res.status(200).json({ ok: true });
+      return send(res, 200, { ok:true });
     }
 
-    // ===== LOGOUT (opsional, tapi bagus ada) =====
     if (action === 'adminLogout') {
       setAuthCookie(req, res, false);
-      return res.status(200).json({ ok: true });
+      return send(res, 200, { ok:true });
     }
 
-    // ===== PROXY KE APPS SCRIPT =====
     const url = process.env.APPS_SCRIPT_URL;
-    if (!url) return res.status(500).json({ ok: false, error: 'APPS_SCRIPT_URL not set' });
+    if (!url) return send(res, 500, { ok:false, error:'APPS_SCRIPT_URL not set' });
 
-    // wajib login untuk aksi tertentu
-    const needsAuth = ['list', 'delete', 'togglePaid', 'toggleAttend'];
+    const needsAuth = ['list','delete','togglePaid','toggleAttend'];
     const hasAdm = parseCookies(req.headers.cookie || '')['adm'] === '1';
-    if (needsAuth.includes(action) && !hasAdm) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
-    }
+    if (needsAuth.includes(action) && !hasAdm) return send(res, 401, { ok:false, error:'Unauthorized' });
 
     let fr;
     try {
-      fr = await fetch(url, {
+      fr = await fetchFn(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ action, payload })
       });
-    } catch (netErr) {
-      // jaringan/URL salah → balas JSON, bukan meledak
-      return res.status(502).json({ ok: false, error: `Fetch to Apps Script failed: ${netErr.message}` });
+    } catch (e) {
+      return send(res, 502, { ok:false, error:`Fetch to Apps Script failed: ${e?.message || e}` });
     }
 
     const text = await fr.text();
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      // Apps Script balas HTML/error → kirim balik sebagai error JSON
-      return res.status(fr.status || 500).json({ ok: false, error: text || 'Apps Script returned non-JSON' });
-    }
+    let data;
+    try { data = text ? JSON.parse(text) : null; }
+    catch { return send(res, fr.status || 500, { ok:false, error:text || 'Apps Script returned non-JSON' }); }
 
     if (!fr.ok || data?.ok === false) {
-      return res.status(fr.status || 500).json({ ok: false, error: data?.error || 'Proxy error' });
+      return send(res, fr.status || 500, { ok:false, error: data?.error || 'Proxy error' });
     }
-    return res.status(200).json(data);
+    return send(res, 200, data);
 
   } catch (e) {
-    // jangan biarkan throw bocor ke Vercel HTML
-    return res.status(500).json({ ok: false, error: e?.message || String(e) });
+    return send(res, 500, { ok:false, error: e?.message || String(e) });
   }
-};
+}
