@@ -1,44 +1,52 @@
 // assets/js/nav.js
-export function bindNav() {
-  const map = {
+import { el, $all } from "./utils.js";
+
+export function bindNav(){
+  const sectionsMap = {
     "btn-register": "section-register",
     "btn-pay":      "section-pay",
     "btn-ticket":   "section-ticket",
     "btn-admin":    "section-admin",
   };
 
-  const hero = document.getElementById("section-hero");
-  const sections = Object.values(map)
-    .map(id => document.getElementById(id))
-    .filter(Boolean);
+  const hero = document.getElementById("section-hero"); // ← HERO
 
-  function show(id) {
-    // sembunyikan semua section utama
-    sections.forEach(s => s.classList.add("hidden"));
-    document.getElementById(id)?.classList.remove("hidden");
+  const show = (btnId, secId) => {
+    // sembunyikan semua section utama, tampilkan yang dipilih
+    Object.values(sectionsMap).forEach(id => el(id).classList.add("hidden"));
+    el(secId).classList.remove("hidden");
 
-    // HERO hanya tampil di menu Daftar
+    // HERO hanya muncul di menu Daftar
     if (hero) {
-      if (id === "section-register") hero.classList.remove("hidden");
+      if (secId === "section-register") hero.classList.remove("hidden");
       else hero.classList.add("hidden");
     }
 
-    // highlight tombol aktif (opsional)
-    Object.entries(map).forEach(([btnId, secId]) => {
-      const btn = document.getElementById(btnId);
-      if (!btn) return;
-      const active = (secId === id);
-      btn.classList.toggle("bg-[var(--brand)]", active);
-      btn.classList.toggle("text-white", active);
-      btn.classList.toggle("bg-white/10", !active);
-    });
-  }
+    // highlight tombol aktif
+    $all("header button").forEach(b => b.classList.remove("bg-white/10"));
+    el(btnId).classList.add("bg-white/10");
 
-  // pasang handler
-  Object.entries(map).forEach(([btnId, secId]) => {
-    document.getElementById(btnId)?.addEventListener("click", () => show(secId));
+    // fokuskan input sesuai section
+    if (secId === "section-register") document.querySelector("#f-nama")?.focus();
+    if (secId === "section-pay")      document.querySelector("#pay-wa")?.focus();
+    if (secId === "section-ticket") {
+      document.querySelector("#t-search")?.focus();
+      window.dispatchEvent(new Event("ticket:show"));
+    }
+  };
+
+  // pasang listener pada tombol nav
+  Object.entries(sectionsMap).forEach(([btnId, secId]) => {
+    el(btnId).addEventListener("click", (e) => {
+      e.preventDefault?.();
+      show(btnId, secId);
+      location.hash = "#" + secId;
+    });
   });
 
-  // tampilan awal: Daftar
-  show(map["btn-register"]);
+  // tentukan tampilan awal
+  const hash = location.hash.replace("#", "");
+  const initialSec = Object.values(sectionsMap).includes(hash) ? hash : "section-register";
+  const initialBtn = Object.keys(sectionsMap).find(k => sectionsMap[k] === initialSec) || "btn-register";
+  show(initialBtn, initialSec);
 }
