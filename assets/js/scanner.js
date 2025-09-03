@@ -1,71 +1,145 @@
-import { el, showOverlay, hideOverlay } from "./utils.js";
-import { state } from "./state.js";
-import { renderStats, renderAdminTable } from "./admin.js";
+// assets/js/scanner.js
+import { showOverlay, hideOverlay, showPopup, el } from "./utils.js";
 import { api } from "./api.js";
-export async function startScan(){
-  stopScan();
-  el("scan-msg").textContent="Meminta izin kamera…";
-  try{
-    if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-      throw new Error("Browser tidak mendukung kamera (getUserMedia).");
-    }
-    // Try back camera, then any camera
-    const base = { width:{ideal:1280}, height:{ideal:720} };
-    const trials = [
-      { video:{ ...base, facingMode:{ideal:"environment"} }, audio:false },
-      { video:true, audio:false }
-    ];
-    let stream=null, lastErr=null;
-    for(const c of trials){
-      try{ stream = await navigator.mediaDevices.getUserMedia(c); break; }
-      catch(e){ lastErr=e; }
-    }
-    if(!stream) throw lastErr || new Error("Tidak bisa mengakses kamera.");
 
-    const v = el("scan-video");
-    v.setAttribute("playsinline","");
-    v.muted = true;
-    v.srcObject = stream;
-    await v.play();
-    el("scan-msg").textContent="Kamera aktif.";
-    loopScan();
-  }catch(e){
-    const httpsNote = (location.protocol !== "https:" && location.hostname !== "localhost")
-      ? " Situs harus diakses via HTTPS atau localhost." : "";
-    el("scan-msg").innerHTML = "Gagal akses kamera. " + (e?.message||e) + httpsNote;
-    console.error(e);
-  }
-  stopScan(); el("scan-msg").textContent="Menginisialisasi kamera...";
-  try{
-    const constraints = { video: { facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720} }, audio:false };
-    const stream=await navigator.mediaDevices.getUserMedia(constraints);
-    const v=el("scan-video"); v.srcObject=stream; await v.play(); el("scan-msg").textContent="Kamera aktif."; loopScan();
-  }catch(e){ console.error(e); el("scan-msg").textContent="Gagal akses kamera. Pastikan via HTTPS dan beri izin kamera."; }
+let stream = null;
+let rafId = null;
+let scanning = false;
+let off = null;   // offscreen canvas
+let octx = null;
+
+function msg(text, ok = false) {
+  const m = document.getElementById("scan-msg");
+  if (!m) return;
+  m.className = "text-sm " + (ok ? "text-emerald-300" : "text-slate-400");
+  m.textContent = text;
 }
-export function stopScan(){
-  const v=el("scan-video"); if(v.srcObject){ v.srcObject.getTracks().forEach(t=>t.stop()); v.srcObject=null; } el("scan-msg").textContent="Scanner berhenti.";
+function setResult(html = "") {
+  const r = document.getElementById("scan-result");
+  if (r) r.innerHTML = html;
 }
-function loopScan(){
-  const v=el("scan-video"), c=el("scan-canvas"), ctx=c.getContext("2d");
-  const tick=()=>{ if(v.readyState===v.HAVE_ENOUGH_DATA){ c.width=v.videoWidth; c.height=v.videoHeight; ctx.drawImage(v,0,0,c.width,c.height);
-      const img=ctx.getImageData(0,0,c.width,c.height); const code=jsQR(img.data,img.width,img.height,{inversionAttempts:"dontInvert"});
-      if(code?.data){ handleScanPayload(code.data); setTimeout(loopScan,800); return; } }
-    requestAnimationFrame(tick); };
-  tick();
-}
-async function handleScanPayload(data){
-  showOverlay("Memindai…","Memuat data dari Sheet", 0);
-  try{
-    let s=""; try{s=JSON.parse(data).code||"";}catch{ s=data; }
-    const { rec } = await api.getTicket(s);
-    if(!rec) return el("scan-result").innerHTML=`<span class="text-red-400">QR tidak dikenali.</span>`;
-    if(!Number(rec.paid)) return el("scan-result").innerHTML=`<span class="text-yellow-300">Belum bayar.</span>`;
-    if(!Number(rec.attended)){
-      await api.toggleAttend(rec.id);
-      const { rows } = await api.list(); state.regs = rows; renderStats(); renderAdminTable();
+
+async function handleDecoded(text) {
+  // hentikan sementara loop supaya tidak baca dobel
+  await stopScan(true);
+
+  showOverlay("Memeriksa QR…", "Membaca data & mencatat kehadiran");
+  try {
+    const q = String(text || "").trim();
+    // cari tiket dari isi QR (boleh kode / WA)
+    const { rec } = await api.getTicket(q);
+    if (!rec) {
+      hideOverlay();
+      showPopup("warn", "QR tidak dikenali", "Data pendaftar tidak ditemukan");
+      msg("QR tidak dikenali / data tidak ditemukan");
+      return;
     }
-    el("scan-result").innerHTML=`<div class="space-y-1">
-      <div><b>Kode:</b> ${rec.code}</div><div><b>Nama:</b> ${rec.nama}</div><div><b>WA:</b> ${rec.wa}</div>
-      <div><b>Status:</b> <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Hadir</span></div></div>`;
-  }catch(e){ el("scan-result").textContent = "Error: " + e.message; } finally { hideOverlay(); }
+    // toggle hadir → jika belum hadir akan menjadi hadir (1)
+    const res = await api.toggleAttend(rec.id);
+    hideOverlay();
+
+    const hadir = Number(res?.attended) === 1;
+    showPopup("ok", hadir ? "Hadir tercatat" : "Status diubah",
+      `${rec.nama || "-"} • ${rec.code || ""}`);
+    msg(hadir ? "Hadir tercatat." : "Hadir dibatalkan.", true);
+    setResult(`
+      <div class="mt-1 p-2 rounded bg-white/5 border border-white/10">
+        <div><b>Nama:</b> ${rec.nama || "-"}</div>
+        <div><b>Kode:</b> ${rec.code || "-"}</div>
+        <div><b>WA:</b> ${rec.wa || "-"}</div>
+        <div class="mt-1">
+          <span class="px-2 py-0.5 rounded ${hadir?'bg-emerald-500/20 text-emerald-300':'bg-rose-500/20 text-rose-300'}">
+            ${hadir ? "Hadir" : "Belum hadir"}
+          </span>
+        </div>
+      </div>
+    `);
+  } catch (e) {
+    hideOverlay();
+    showPopup("error", "Gagal memproses", e?.message || String(e));
+    msg("Terjadi kesalahan saat memproses QR");
+  }
+}
+
+function getBestConstraints() {
+  return {
+    audio: false,
+    video: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
+    }
+  };
+}
+
+function drawLoop(video) {
+  if (!scanning) return;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!vw || !vh) { rafId = requestAnimationFrame(() => drawLoop(video)); return; }
+
+  if (!off) {
+    off = document.createElement("canvas");
+    off.width = vw; off.height = vh;
+    octx = off.getContext("2d", { willReadFrequently: true });
+  }
+
+  octx.drawImage(video, 0, 0, vw, vh);
+  // proses tiap ~150ms biar ringan
+  setTimeout(() => {
+    try {
+      const imageData = octx.getImageData(0, 0, vw, vh);
+      const result = window.jsQR
+        ? window.jsQR(imageData.data, vw, vh, { inversionAttempts: "dontInvert" })
+        : null;
+      if (result && result.data) {
+        // garis kotak (opsional, tidak wajib karena pakai video langsung)
+        handleDecoded(result.data);
+        return;
+      }
+    } catch {}
+  }, 0);
+
+  rafId = requestAnimationFrame(() => drawLoop(video));
+}
+
+export async function startScan() {
+  const video = document.getElementById("scan-video");
+  if (!video) return;
+
+  if (scanning) return; // sudah aktif
+  setResult("");
+  msg("Meminta akses kamera…");
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(getBestConstraints());
+    video.srcObject = stream;
+    await video.play();
+
+    scanning = true;
+    msg("Memindai QR… Arahkan kamera ke kode.", true);
+    drawLoop(video);
+  } catch (e) {
+    console.error(e);
+    msg("Gagal mengakses kamera. Periksa izin browser.");
+    showPopup("error", "Kamera tidak bisa dibuka", e?.message || String(e));
+  }
+}
+
+export async function stopScan(keepVideo = false) {
+  scanning = false;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+  const video = document.getElementById("scan-video");
+  if (!keepVideo && video) {
+    try { video.pause(); } catch {}
+    if (video.srcObject) video.srcObject = null;
+  }
+
+  if (stream) {
+    try { stream.getTracks().forEach(t => t.stop()); } catch {}
+    stream = null;
+  }
+  off = null; octx = null;
+
+  if (!keepVideo) msg("Pemindaian dihentikan.");
 }
