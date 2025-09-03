@@ -187,7 +187,16 @@ export function bindAdmin(){
   const loginBox = el("admin-login");
   const areaBox  = el("admin-area");
   const btnEnter = el("admin-enter");
+  const passInput = el("admin-pass");
+  if (passInput){ passInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); btnEnter?.click(); } }); }
+
   const msgBox   = el("admin-msg");
+  const btnLogout = el("admin-logout");
+  if (btnLogout){ btnLogout.addEventListener("click", async ()=>{
+    try{ await api.adminLogout(); }catch{}
+    if (areaBox) areaBox.classList.add("hidden");
+    if (loginBox) loginBox.classList.remove("hidden");
+  }); }
 
   // login click
   if (btnEnter){
@@ -211,21 +220,10 @@ export function bindAdmin(){
 
   // Saat tab admin dibuka, coba loadList — jika 401, form login tetap terlihat
   // (server yang validasi cookie; klien cukup mencoba memuat)
-  (async ()=>{
-    try{
-      // Sembunyikan area dulu; kalau berhasil load, tampilkan
-      if (areaBox) areaBox.classList.add("hidden");
-      if (loginBox) loginBox.classList.remove("hidden");
-      await loadList();
-      if (loginBox) loginBox.classList.add("hidden");
-      if (areaBox)  areaBox.classList.remove("hidden");
-      bindActions();
-    }catch{
-      // kemungkinan 401: biarkan user login
-      if (loginBox) loginBox.classList.remove("hidden");
-      if (areaBox)  areaBox.classList.add("hidden");
-    }
-  })();
+    // Initial state: show login, hide admin area; data loads after successful login
+  if (loginBox) loginBox.classList.remove("hidden");
+  if (areaBox)  areaBox.classList.add("hidden");
+
 }
 
 
