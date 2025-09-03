@@ -11,7 +11,7 @@
 .ticket .ticket-inner{display:grid;grid-template-columns:1fr 200px;gap:16px;padding:20px}
 .ticket .title{font-weight:800;font-size:20px}
 .ticket .meta{color:#cbd5e1}
-.qr-wrap{width:180px;height:180px;display:grid;place-items:center;border-radius:12px;background:#0b1220;border:1px solid rgba(255,255,255,.08)}
+.qr-wrap{width:180px;height:180px;display:grid;place-items:center;border-radius:12px;background:#fff;border:1px solid rgba(255,255,255,.08)}
 .skeleton{background:linear-gradient(90deg,#1f2937 0,#334155 50%,#1f2937 100%);background-size:200% 100%;border-radius:8px;animation:skeleton 1.2s ease-in-out infinite}
 @keyframes skeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .segmented{width:22px;height:22px;border-radius:50%;background:conic-gradient(from 0deg, rgba(34,211,238,.9) 0 12%, transparent 12% 25%);-webkit-mask:radial-gradient(farthest-side,transparent 55%,#000 56%);mask:radial-gradient(farthest-side,transparent 55%,#000 56%);animation:spin 1s linear infinite}
