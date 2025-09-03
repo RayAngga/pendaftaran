@@ -3,26 +3,38 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+
+  <!-- No cache (supaya data selalu fresh) -->
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+
   <title>RIUNGMUNGPULUNG MABA — Meet & Greet</title>
+
+  <!-- Tailwind -->
   <script>tailwind=window.tailwind||{};tailwind.config={darkMode:'class'};</script>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Vendor libs (UMD, global) -->
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  <link rel="stylesheet" href="./assets/css/styles.css">
+
+  <link rel="stylesheet" href="/assets/css/styles.css">
 </head>
 <body class="min-h-screen bg-slate-950 text-white">
   <header class="sticky top-0 z-30 bg-slate-950/70 backdrop-blur border-b border-white/10">
     <div class="max-w-6xl mx-auto px-3 md:px-4 py-2 md:py-3 flex items-center gap-2 md:gap-3">
+      <!-- Logo: klik = hard refresh -->
       <button id="logo-btn" class="w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden ring-1 ring-white/10" aria-label="Muat ulang">
-        <img src="./assets/img/logo.png" alt="Logo" class="w-full h-full object-cover"/>
+        <img src="/assets/img/logo.png" alt="Logo" class="w-full h-full object-cover"/>
       </button>
+
       <div class="flex-1 min-w-0">
         <h1 class="text-base md:text-xl font-extrabold tracking-tight leading-tight sm:truncate">RIUNGMUNGPULUNG MABA</h1>
         <p class="text-[11px] md:text-xs text-slate-400 truncate">Pendaftaran • Pembayaran • E-Tiket (QR) • Check-in</p>
       </div>
+
       <div class="flex items-center gap-1 md:gap-2">
         <button id="btn-register" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-sm">Daftar</button>
         <button id="btn-pay" class="px-3 py-1.5 rounded-lg hover:bg-white/10 text-sm">Pembayaran</button>
@@ -33,6 +45,7 @@
   </header>
 
   <main class="max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-8 md:space-y-10">
+    <!-- HERO -->
     <section class="rounded-2xl p-4 md:p-8 bg-gradient-to-br from-[var(--brand)]/20 via-slate-900 to-[var(--accent)]/20 border border-white/10">
       <h2 class="text-xl md:text-3xl font-extrabold mb-2">Meet & Greet — RIUNGMUNGPULUNG MABA</h2>
       <ol class="text-slate-300 text-sm list-decimal list-inside space-y-1">
@@ -43,6 +56,7 @@
       </ol>
     </section>
 
+    <!-- REGISTER -->
     <section id="section-register" class="section space-y-4 md:space-y-6">
       <h3 class="text-lg md:text-xl font-bold">Form Pendaftaran</h3>
       <form id="form-register" class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 bg-white/5 p-4 md:p-5 rounded-xl border border-white/10">
@@ -84,6 +98,7 @@
       <p id="kuota-info" class="text-xs text-slate-400"></p>
     </section>
 
+    <!-- PAYMENT -->
     <section id="section-pay" class="section hidden space-y-4 md:space-y-6">
       <h3 class="text-lg md:text-xl font-bold">Pembayaran & Unggah Bukti</h3>
 
@@ -120,6 +135,7 @@
       </div>
     </section>
 
+    <!-- TICKET -->
     <section id="section-ticket" class="section hidden space-y-4 md:space-y-6">
       <h3 class="text-lg md:text-xl font-bold">E-Tiket Peserta</h3>
 
@@ -169,6 +185,7 @@
       <p id="ticket-msg" class="text-sm"></p>
     </section>
 
+    <!-- ADMIN -->
     <section id="section-admin" class="section hidden space-y-4 md:space-y-6">
       <h3 class="text-lg md:text-xl font-bold">Admin Panel</h3>
 
@@ -205,6 +222,7 @@
     </section>
   </main>
 
+  <!-- Overlay & Popup -->
   <div id="overlay" class="overlay hidden" aria-hidden="true">
     <div class="overlay-box" role="dialog" aria-modal="true" aria-live="assertive">
       <div class="segmented large mx-auto"></div>
@@ -224,9 +242,8 @@
   <footer class="max-w-6xl mx-auto px-3 md:px-4 pb-10 text-xs text-slate-400">
     &copy; <span id="year"></span> RIUNGMUNGPULUNG MABA.
   </footer>
-  
-  <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+  <!-- App (ESM) -->
   <script type="module" src="/assets/js/main.js"></script>
 </body>
 </html>
