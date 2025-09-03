@@ -21,16 +21,10 @@
       ]
     }
   ],
-  "routes": [
-    { "src": "^/api/appscript$", "dest": "api/appscript.js" },
-
-    /* Pastikan file statis tidak ketimpa oleh fallback */
-    { "src": "^/assets/(.*)$", "dest": "assets/$1" },
-    { "src": "^/script/(.*)$", "dest": "script/$1" },
-    { "src": "^/(favicon\\.ico|robots\\.txt|manifest\\.json)$", "dest": "/$1" },
-
-    /* Fallback SPA ke index.html (kalau suatu saat pakai path-based routing) */
-    { "src": "/(.*)", "dest": "index.html" }
+  "rewrites": [
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/script/(.*)", "destination": "/script/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "cleanUrls": true,
   "trailingSlash": false
