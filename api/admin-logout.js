@@ -1,5 +1,1 @@
-export default async function handler(req, res){
-  if (req.method !== "POST") return res.status(405).end();
-  res.setHeader("Set-Cookie", "adm=; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=0");
-  res.status(200).json({ ok:true });
-}
+export default async function handler(req,res){const allowedOrigin=process.env.ALLOWED_ORIGIN||"";if(req.method==="OPTIONS"){res.setHeader("Access-Control-Allow-Origin",allowedOrigin||"*");res.setHeader("Access-Control-Allow-Methods","POST, OPTIONS");res.setHeader("Access-Control-Allow-Headers","Content-Type");res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");res.setHeader("Pragma","no-cache");res.setHeader("Expires","0");return res.status(204).end()}if(req.method!=="POST")return res.status(405).json({ok:false,error:"Method Not Allowed"});res.setHeader("Set-Cookie","adm=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0");res.setHeader("Access-Control-Allow-Origin",allowedOrigin||"*");res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");res.setHeader("Pragma","no-cache");res.setHeader("Expires","0");return res.status(200).json({ok:true})}
