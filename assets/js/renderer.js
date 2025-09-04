@@ -46,43 +46,43 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.fillStyle = stripe;
   ctx.fillRect(cardX + 18, cardY + cardH - stripeH - 18, cardW - 36, stripeH);
 
-  // --- Title
-  const LEFT = cardX + 64;
-  const TITLE_Y = cardY + 120;
-  const titleText = "RIUNGMUNGPULUNG MABA — E-Ticket";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "800 64px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
-  ctx.fillText(titleText, LEFT, TITLE_Y);
+// --- Title
+const LEFT = cardX + 64;
+const TITLE_Y = cardY + 120;
+const titleText = "RIUNGMUNGPULUNG MABA — E-Ticket";
+ctx.fillStyle = "#ffffff";
+ctx.font = "800 64px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
+ctx.fillText(titleText, LEFT, TITLE_Y);
 
-  // hitung tinggi judul supaya aman
-  const tm = ctx.measureText(titleText);
-  const titleHeight = (tm.actualBoundingBoxAscent || 52) + (tm.actualBoundingBoxDescent || 12);
+// Hitung tinggi judul + fallback, lalu JARAK MINIMUM agar tidak pernah numpuk
+const mt = ctx.measureText(titleText);
+const titleHeight =
+  (mt.actualBoundingBoxAscent || 64 * 0.82) +
+  (mt.actualBoundingBoxDescent || 10);
 
-  // --- QR panel (digambar dulu posisinya)
-  const panelW = Math.max(qrSize + 120, Math.min(880, Math.min(cardW, cardH) * 0.62));
-  const panelH = panelW;
-  const panelX = cardX + cardW - panelW - 76;
-  const panelY = cardY + 160;
-  roundRect(ctx, panelX, panelY, panelW, panelH, 28);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
+// >>> tambahkan jarak minimum yang besar (mis. 150px)
+const NAME_GAP_MIN = 150;
+let nameY = TITLE_Y + Math.max(titleHeight + 32, NAME_GAP_MIN);
 
-  // --- Name (dengan jarak aman dan autoscale)
-  let nameY = TITLE_Y + titleHeight + 28; // JARAK TAMBAHAN di sini
-  let fontPx = nameSize;
+// --- Name (autoscale kalau terlalu panjang)
+let fontPx = 112;                      // ukuran dasar nama
+const name = String(rec?.nama || "-");
+const leftMaxW = (panelX - 40) - LEFT; // lebar kolom kiri
 
-  // skala nama jika terlalu panjang untuk kolom kiri
-  const leftMaxW = (panelX - 40) - LEFT; // lebar kolom kiri
+ctx.font = `900 ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
+let nameW = ctx.measureText(name).width;
+if (nameW > leftMaxW) {
+  const scale = Math.max(0.6, leftMaxW / nameW); // minimal 60%
+  fontPx = Math.round(112 * scale);
   ctx.font = `900 ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
-  let name = String(rec?.nama || "-");
-  let nameW = ctx.measureText(name).width;
-  if (nameW > leftMaxW) {
-    const scale = Math.max(0.6, leftMaxW / nameW); // minimal 60% biar tetap besar
-    fontPx = Math.round(nameSize * scale);
-  }
-  ctx.font = `900 ${fontPx}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(name, LEFT, nameY);
+}
+
+ctx.fillStyle = "#ffffff";
+ctx.fillText(name, LEFT, nameY);
+
+// setelah nama, beri jarak ekstra sebelum baris-baris berikutnya
+let y = nameY + Math.max(64, Math.round(fontPx * 0.6));
+
 
   // --- QR Image
   const qrCanvas = await generateQR(String(rec?.code || rec?.id || "NA"), qrSize);
