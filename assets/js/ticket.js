@@ -11,14 +11,46 @@ function setMsg(text, cls = "text-sm mt-2 text-red-400") {
   const m = msgBox(); if (!m) return;
   m.className = cls; m.textContent = text || "";
 }
+
+// sisipkan node (canvas/img/hidden) sebelum area tombol unduh agar tombol tetap ada
+function insertBeforeDownload(node) {
+  const w = wrap(); if (!w) return;
+  const downloadBox = btnDownload()?.closest("div");
+  if (downloadBox && downloadBox.parentElement === w) {
+    w.insertBefore(node, downloadBox);
+  } else {
+    w.appendChild(node);
+  }
+}
+
+// set/replace hidden last code di posisi aman (sebelum tombol)
+function setLastCodeInput(code) {
+  const w = wrap(); if (!w) return;
+  el("__lastTicketCode")?.remove();
+  const h = document.createElement("input");
+  h.type = "hidden"; h.id = "__lastTicketCode";
+  h.value = String(code || "ticket");
+  insertBeforeDownload(h);
+}
+
 function setLoading(on) {
-  const w = wrap();
-  if (!w) return;
+  const w = wrap(); if (!w) return;
+  const b = btnDownload();
   if (on) {
     w.classList.remove("hidden");
-    w.innerHTML = '<div class="skeleton h-64 rounded-2xl"></div>';
+    // JANGAN clear innerHTML; tambahkan skeleton sementara
+    let sk = el("__ticketSkel");
+    if (!sk) {
+      sk = document.createElement("div");
+      sk.id = "__ticketSkel";
+      sk.className = "skeleton h-64 rounded-2xl mb-4";
+      w.prepend(sk);
+    }
+    if (b) b.disabled = true;
+  } else {
+    el("__ticketSkel")?.remove();
+    if (b) b.disabled = false;
   }
-  (btnDownload() || {}).disabled = !!on;
 }
 
 function waDisplay(v) {
@@ -82,10 +114,20 @@ function drawBadgeRow(ctx, label, text, x, y, { bg="#10b981", fg="#0b1220" } = {
   ctx.fillStyle = fg; ctx.fillText(text, rx + padX, y - 6);
 }
 async function paintFallbackCard(rec) {
-  // siapkan canvas di DOM
   const w = wrap(); if (!w) return null;
+
+  // buang img jika sebelumnya pakai renderer
+  w.querySelector("img")?.remove();
+
   let cv = el("ticket-canvas");
-  if (!cv) { cv = document.createElement("canvas"); cv.id="ticket-canvas"; w.innerHTML=""; w.appendChild(cv); }
+  if (!cv) {
+    cv = document.createElement("canvas");
+    cv.id = "ticket-canvas";
+    insertBeforeDownload(cv);
+  } else {
+    // pastikan posisinya sebelum tombol
+    insertBeforeDownload(cv);
+  }
 
   const W = 1200, H = 680;
   cv.width = W; cv.height = H;
@@ -141,17 +183,12 @@ async function paintFallbackCard(rec) {
   drawBadgeRow(ctx, "Bayar:", paid ? "Sudah" : "Belum", leftX, y,
     paid ? { bg:"#10b981", fg:"#0b1220" } : { bg:"#ef4444", fg:"#0b1220" });
 
-  // simpan kode utk nama file
-  el("__lastTicketCode")?.remove();
-  const h = document.createElement("input");
-  h.type="hidden"; h.id="__lastTicketCode"; h.value=String(rec.code || rec.id || "ticket");
-  w.appendChild(h);
+  setLastCodeInput(rec.code || rec.id || "ticket");
   return cv;
 }
 
 /* ---------- renderer (gambar PNG) ---------- */
 async function tryRenderWithRenderer(rec) {
-  // path relatif ke ticket.js
   const tryPaths = [
     "./renderer.js",
     "/assets/js/renderer.js",
@@ -168,15 +205,18 @@ async function tryRenderWithRenderer(rec) {
   if (!mod?.buildTicketImage) { if (lastErr) console.warn("[ticket] renderer not found:", lastErr); return null; }
 
   const dataUrl = await mod.buildTicketImage(rec, { width: 2200, height: 1100 });
-  const w = wrap(); if (!w) return null;
-  const img = new Image(); img.alt = "E-Ticket"; img.className = "rounded-2xl shadow-2xl ring-1 ring-white/10 block mx-auto";
-  img.src = dataUrl;
-  w.innerHTML = ""; w.appendChild(img);
 
-  el("__lastTicketCode")?.remove();
-  const h = document.createElement("input");
-  h.type="hidden"; h.id="__lastTicketCode"; h.value=String(rec.code || rec.id || "ticket");
-  w.appendChild(h);
+  const w = wrap(); if (!w) return null;
+  // bersihkan canvas lama tapi jangan menghapus tombol
+  w.querySelector("#ticket-canvas")?.remove();
+
+  const img = new Image();
+  img.alt = "E-Ticket";
+  img.className = "rounded-2xl shadow-2xl ring-1 ring-white/10 block mx-auto";
+  img.src = dataUrl;
+
+  insertBeforeDownload(img);
+  setLastCodeInput(rec.code || rec.id || "ticket");
   return img;
 }
 
