@@ -1,204 +1,198 @@
 // assets/js/renderer.js
 export async function buildTicketImage(rec, opt = {}) {
-  const W = opt.width ?? 2200;
-  const H = opt.height ?? 1100;
-  const bleed = opt.bleed ?? 48;
-  const cardR = 40;
+  const W = opt.width  || 1920;
+  const H = opt.height || 1080;
+  const BLEED = opt.bleed || 40;
+  const QR_SIZE = opt.qrSize || 520;
+  const DPR = (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1;
 
-  // Canvas
-  const cvs = document.createElement("canvas");
-  cvs.width = W; cvs.height = H;
-  const ctx = cvs.getContext("2d");
+  const cv = document.createElement("canvas");
+  cv.width = Math.round(W * DPR);
+  cv.height = Math.round(H * DPR);
+  cv.style.width = W + "px";
+  cv.style.height = H + "px";
+  const ctx = cv.getContext("2d");
+  ctx.scale(DPR, DPR);
 
-  /* ===== Background ===== */
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#19b6c7");
-  bg.addColorStop(0.5, "#264b86");
-  bg.addColorStop(1, "#5a2aa6");
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // ---- Background aurora + vignette
+  let g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0.00, "#0ea5a3");
+  g.addColorStop(0.45, "#1f2d4e");
+  g.addColorStop(1.00, "#6d28d9");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-  /* ===== Card ===== */
-  const cardX = bleed, cardY = bleed;
-  const cardW = W - bleed * 2, cardH = H - bleed * 2;
+  const rad = ctx.createRadialGradient(W*0.3, H*0.25, 80, W*0.5, H*0.5, Math.max(W,H)*0.7);
+  rad.addColorStop(0, "rgba(0,0,0,0)");
+  rad.addColorStop(1, "rgba(0,0,0,0.45)");
+  ctx.fillStyle = rad; ctx.fillRect(0,0,W,H);
 
-  // soft outer glow
+  // ---- Card
+  const cardX = BLEED, cardY = BLEED;
+  const cardW = W - BLEED*2, cardH = H - BLEED*2;
   ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,.35)";
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 16;
-  roundRect(ctx, cardX, cardY, cardW, cardH, cardR, "#0f1b27");
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 36;
+  ctx.shadowOffsetY = 22;
+  roundRect(ctx, cardX, cardY, cardW, cardH, 36);
+  const gCard = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+  gCard.addColorStop(0, "#0f1e2c");
+  gCard.addColorStop(1, "#122434");
+  ctx.fillStyle = gCard; ctx.fill();
   ctx.restore();
 
-  // bottom stripe
-  const stripe = ctx.createLinearGradient(cardX, cardY + cardH, cardX + cardW, cardY + cardH);
-  stripe.addColorStop(0, "#22d3ee");
-  stripe.addColorStop(1, "#a78bfa");
-  ctx.fillStyle = stripe;
-  ctx.fillRect(cardX + 16, cardY + cardH - 14, cardW - 32, 10);
+  // stripe bawah
+  const stripeH = 14;
+  const gStripe = ctx.createLinearGradient(cardX, cardY+cardH-stripeH, cardX+cardW, cardY+cardH);
+  gStripe.addColorStop(0, "#22d3ee"); gStripe.addColorStop(1, "#a78bfa");
+  ctx.fillStyle = gStripe; ctx.fillRect(cardX, cardY+cardH-stripeH, cardW, stripeH);
 
-  /* ===== Title & Name ===== */
-  const left = cardX + 52;
+  // ---- Header
+  const LEFT = cardX + 60;
   let y = cardY + 120;
 
-  ctx.fillStyle = "#fff";
-  ctx.font = "800 78px Inter, system-ui, -apple-system, Segoe UI, Roboto";
-  ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", left, y);
+  ctx.fillStyle = "#e7eef7";
+  ctx.font = "800 56px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
+  ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", LEFT, y);
 
+  y += 88;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 96px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
+  ctx.fillText(String(rec?.nama || "-"), LEFT, y);
+
+  // ---- QR panel putih
+  const PANEL = QR_SIZE + 140;
+  const qxPanel = cardX + cardW - PANEL - 88;
+  const qyPanel = Math.max(cardY + 140, y - 96);
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 16;
+  roundRect(ctx, qxPanel, qyPanel, PANEL, PANEL, 34);
+  ctx.fillStyle = "#ffffff"; ctx.fill();
+  ctx.restore();
+
+  let gGloss = ctx.createLinearGradient(qxPanel, qyPanel, qxPanel, qyPanel + PANEL);
+  gGloss.addColorStop(0, "rgba(255,255,255,0.65)");
+  gGloss.addColorStop(0.12, "rgba(255,255,255,0.0)");
+  gGloss.addColorStop(1, "rgba(0,0,0,0.0)");
+  roundRect(ctx, qxPanel, qyPanel, PANEL, PANEL, 34);
+  ctx.fillStyle = gGloss; ctx.fill();
+
+  const qrCanvas = await makeQR(String(rec?.code || rec?.id || "NO-CODE"), QR_SIZE);
+  ctx.drawImage(qrCanvas, qxPanel + (PANEL-QR_SIZE)/2, qyPanel + (PANEL-QR_SIZE)/2, QR_SIZE, QR_SIZE);
+
+  // ---- Kolom kiri (jarak dinaikkan ke 72px)
+  y += 70;
+  const LBL_W = 210;
+  const lineStep = 72;
+
+  const line = (label, value) => {
+    ctx.font = "700 44px system-ui, -apple-system, Segoe UI";
+    ctx.fillStyle = "rgba(203,213,225,1)";
+    ctx.fillText(label, LEFT, y);
+    ctx.font = "400 44px system-ui, -apple-system, Segoe UI";
+    ctx.fillStyle = "#eaf1f9";
+    ctx.fillText(String(value ?? "-"), LEFT + LBL_W, y);
+    y += lineStep;
+  };
+
+  line("Fakultas", rec?.fakultas || "-");
+  line("Prodi",    rec?.prodi    || "-");
+  line("WA",       waPretty(rec?.wa));
+  line("Makanan",  toFood(rec?.makanan));
+  line("Kode",     rec?.code || "-");
+
+  // ---- Dua baris pill: Status & Bayar
+  const attended = Number(rec?.attended) === 1;
+  const paid = Number(rec?.paid) === 1;
+
+  // Baris 1: Status
+  y += 8;
+  const p1 = drawPillLabel(ctx, "Status:", LEFT, y - 46);
+  drawPillValue(ctx, attended ? "Hadir" : "Terdaftar",
+                p1.x + p1.w + 18, y - 46,
+                attended ? "#60a5fa" : "#f59e0b"); // biru utk hadir, kuning utk terdaftar
   y += 66;
-  ctx.font = "800 98px Inter, system-ui, -apple-system, Segoe UI, Roboto";
-  ctx.fillText(String(rec.nama || "-"), left, y);
 
-  /* ===== Right: QR Panel ===== */
-  const qrBox = Math.min(860, cardH - 220);
-  const qrPadding = 66;
-  const qrSize = qrBox - qrPadding * 2;
-  const rightX = cardX + cardW - qrBox - 70;
-  const rightY = cardY + 120;
+  // Baris 2: Bayar
+  const p2 = drawPillLabel(ctx, "Bayar:", LEFT, y - 46);
+  drawPillValue(ctx, paid ? "Sudah" : "Belum",
+                p2.x + p2.w + 18, y - 46,
+                paid ? "#34d399" : "#ef4444");
 
-  roundRect(ctx, rightX, rightY, qrBox, qrBox, 28, "#ffffff");
+  return cv.toDataURL("image/png");
 
-  // generate real QR when lib available (qrcode -> qrious -> fallback)
-  const qrCanvas = await genQR(String(rec.code || rec.id || "NA"), qrSize);
-  const qx = rightX + (qrBox - qrSize) / 2;
-  const qy = rightY + (qrBox - qrSize) / 2;
-  ctx.drawImage(qrCanvas, qx, qy, qrSize, qrSize);
-
-  /* ===== Left column data ===== */
-  y += 64; // gap before table
-  const labelX = left;
-  const valueX = left + 220;
-  const lh = 68;
-
-  const rows = [
-    ["Fakultas:", rec.fakultas],
-    ["Prodi:", rec.prodi],
-    ["WA:", formatWA(rec.wa)],
-    ["Makanan:", prettyFood(rec.makanan)],
-    ["Domisili:", rec.domisili],
-    ["Kode:", rec.code]
-  ];
-
-  rows.forEach(([lab, val]) => {
-    drawRow(ctx, lab, val || "-", labelX, valueX, y);
-    y += lh;
-  });
-
-  // Badges: label tetap teks biasa, chip rata baseline
-  drawLabel(ctx, "Status:", labelX, y);
-  drawChip(ctx, Number(rec.attended) ? "Hadir" : "Terdaftar", valueX, y, {
-    bg: "#1d4ed8", fg: "#e0e7ff"
-  });
-  y += lh;
-
-  drawLabel(ctx, "Bayar:", labelX, y);
-  drawChip(
-    ctx,
-    Number(rec.paid) ? "Sudah" : "Belum",
-    valueX,
-    y,
-    Number(rec.paid)
-      ? { bg: "#10b981", fg: "#052e24" }
-      : { bg: "#ef4444", fg: "#3b0d0d" }
-  );
-
-  return cvs.toDataURL("image/png");
-
-  /* ===== helpers ===== */
-
-  function roundRect(ctx, x, y, w, h, r, fill) {
-    const rr = Math.min(r, w / 2, h / 2);
+  // ===== Helpers
+  function roundRect(ctx, x, y, w, h, r){
+    const rr = Math.min(r, w/2, h/2);
     ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y,   x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x,   y+h, rr);
+    ctx.arcTo(x,   y+h, x,   y,   rr);
+    ctx.arcTo(x,   y,   x+w, y,   rr);
     ctx.closePath();
-    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
   }
 
-  function drawRow(ctx, lab, val, lx, vx, yy) {
-    drawLabel(ctx, lab, lx, yy);
-    ctx.font = "400 46px Inter, system-ui";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(String(val), vx, yy);
+  // ★★ Diubah: tidak lagi menggambar background; hanya teks label biasa
+  function drawPillLabel(ctx, text, x, y){
+    ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
+    const textW = Math.ceil(ctx.measureText(text).width);
+    // Gambar teks label (abu-abu muda, konsisten dengan label lain)
+    ctx.fillStyle = "rgba(203,213,225,1)";
+    // Posisi teks tetap mengikuti baseline lama (56 tinggi + padding 16)
+    ctx.fillText(text, x, y + 56 - 16);
+    // Tetap kembalikan width dengan sedikit padding agar jarak ke nilai tetap sama
+    const w = textW + 60;
+    return { x, y, w, h: 56 };
   }
 
-  function drawLabel(ctx, lab, lx, yy) {
-    ctx.font = "700 46px Inter, system-ui";
-    ctx.fillStyle = "#cbd5e1";
-    ctx.fillText(lab, lx, yy);
+  function drawPillValue(ctx, text, x, y, bg){
+    ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
+    const w = Math.ceil(ctx.measureText(text).width) + 28*2;
+    ctx.beginPath(); roundRect(ctx, x, y, w, 56, 16);
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.fillStyle = "#0b1220"; ctx.fillText(text, x + 28, y + 56 - 16);
   }
 
-  function drawChip(ctx, text, x, baselineY, opt = {}) {
-    const padX = 22, padY = 14, radius = 18;
-    ctx.font = "800 40px Inter, system-ui";
-    const w = ctx.measureText(text).width + padX * 2;
-    const h = 48 + padY; // visual height
-    const top = baselineY - h + 8; // align to same baseline as label
-    ctx.save();
-    roundRect(ctx, x, top, w, h, radius, opt.bg || "#0ea5e9");
-    ctx.fillStyle = opt.fg || "#06223a";
-    // center text vertically
-    const ty = top + h / 2 + 14; // tuned for this font size
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, x + padX, ty);
-    ctx.restore();
-    ctx.textBaseline = "alphabetic";
+  async function makeQR(text, size){
+    const c = document.createElement("canvas");
+    c.width = c.height = size;
+    try{
+      if (window.QRCode?.toCanvas){
+        await window.QRCode.toCanvas(c, text, { width: size, margin: 1, errorCorrectionLevel: "H",
+          color: { light: "#ffffff", dark: "#000000" }});
+        return c;
+      }
+    }catch{}
+    try{
+      if (window.QRious){
+        new window.QRious({ element: c, value: text, size, level: "H", background:"#fff", foreground:"#000" });
+        return c;
+      }
+    }catch{}
+    const cx = c.getContext("2d");
+    cx.fillStyle = "#fff"; cx.fillRect(0,0,size,size);
+    cx.fillStyle = "#000"; cx.fillRect(size*0.4,size*0.4,size*0.2,size*0.2);
+    return c;
   }
 
-  function formatWA(v) {
-    let s = String(v || "").replace(/[^\d]/g, "");
-    if (!s) return "";
-    if (s.startsWith("62")) s = "0" + s.slice(2);
-    if (s[0] === "8") s = "0" + s;
-    if (s[0] !== "0" && s.length >= 9 && s.length <= 13) s = "0" + s;
-    // spasi tiap 4 digit agar mirip desain
-    return s.replace(/(\d{4})(?=\d)/g, "$1-");
+  function waPretty(v){
+    let s = String(v||"").replace(/[^\d]/g,"");
+    if (!s) return "-";
+    if (s.startsWith("62")) s = "0"+s.slice(2);
+    if (s[0] === "8") s = "0"+s;
+    if (s[0] !== "0" && s.length >= 9 && s.length <= 13) s = "0"+s;
+
+    const parts = [];
+    let i = 0; const pattern = [4,4,4,4];
+    for (const n of pattern){ if (i >= s.length) break; parts.push(s.slice(i, i+n)); i += n; }
+    return parts.join("-");
   }
 
-  function prettyFood(m) {
+  function toFood(m){
     if (!m) return "-";
     if (typeof m === "object") return m.label || m.value || "-";
     return String(m);
-  }
-
-  async function genQR(text, size) {
-    const c = document.createElement("canvas");
-    c.width = c.height = size;
-
-    // 1) qrcode
-    try {
-      if (window.QRCode?.toCanvas) {
-        await window.QRCode.toCanvas(c, text, {
-          width: size,
-          margin: 0,
-          errorCorrectionLevel: "H",
-          color: { light: "#ffffff", dark: "#000000" }
-        });
-        return c;
-      }
-    } catch {}
-
-    // 2) qrious
-    try {
-      if (window.QRious) {
-        new window.QRious({ element: c, value: text, size, level: "H", background: "white", foreground: "black" });
-        return c;
-      }
-    } catch {}
-
-    // 3) fallback sederhana (tetap center & kontras)
-    const k = c.getContext("2d");
-    k.fillStyle = "#fff"; k.fillRect(0, 0, size, size);
-    k.fillStyle = "#000";
-    const u = Math.floor(size / 6);
-    // tiga finder pattern minimalis
-    k.fillRect(u * 0.6, u * 0.6, u, u);
-    k.fillRect(size - u * 1.6, u * 0.6, u, u);
-    k.fillRect(u * 0.6, size - u * 1.6, u, u);
-    // blok tengah
-    k.fillRect(size / 2 - u / 4, size / 2 - u / 4, u / 2, u / 2);
-    return c;
   }
 }
