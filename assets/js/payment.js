@@ -116,7 +116,7 @@ export function bindPayment(){
   el("bank-name").textContent = "DANA";
   el("bank-rek").textContent = "083851116698";
   el("bank-owner").textContent = "Ranzani Rizky Fadilah";
-  el("bank-amount").textContent = "Rp 25.000.000";
+  el("bank-amount").textContent = "Rp 80.000";
 
   el("pay-find").addEventListener("click", findUnpaidByWA);
   el("pay-submit").addEventListener("click", submitProof);
