@@ -5,6 +5,7 @@ import { bindPayment }  from "./payment.js";
 import { bindAdmin }    from "./admin.js";
 import { startScan, stopScan } from "./scanner.js";
 import { bindTicket }   from "./ticket.js"; // tiket → canvas & unduh PNG
+import { bindAnimations } from "./anim.js";
 
 // helper aman
 const on = (id, evt, fn) => {
@@ -70,6 +71,8 @@ function safeInit() {
 
   // pastikan tombol Daftar benar-benar bekerja
   ensureRegisterWorks();
+
+  try { bindAnimations?.(); } catch (e) { console.warn("[anim] skip", e); }
 
   console.log("[main] init selesai");
 }

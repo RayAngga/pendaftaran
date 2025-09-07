@@ -112,3 +112,150 @@
     width:100%;
   }
 }
+
+
+/* === Animations & Transitions Add-on (non-destructive) === */
+#route-veil{
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 800px at 20% 20%, rgba(34,211,238,.14), transparent 60%),
+    radial-gradient(900px 700px at 80% 25%, rgba(167,139,250,.12), transparent 60%),
+    linear-gradient(135deg, rgba(2,6,23,.8), rgba(2,6,23,.92));
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform .28s ease;
+  z-index: 80;
+}
+#route-veil.veil-in{ transform: scaleX(1); }
+#route-veil.veil-out{ transform: scaleX(0); }
+
+/* Route enter/leave keyframes (used by JS) */
+@keyframes routeIn {
+  from{ opacity:0; transform: translateY(10px) scale(.98); }
+  to  { opacity:1; transform: translateY(0)    scale(1); }
+}
+@keyframes routeOut {
+  from{ opacity:1; transform: translateY(0)    scale(1); }
+  to  { opacity:0; transform: translateY(-8px) scale(.985); }
+}
+.section.route-enter{ animation: routeIn .34s cubic-bezier(.2,.7,.2,1) both; }
+.section.route-leave{ animation: routeOut .22s ease both; }
+
+/* Reveal on scroll */
+.reveal{ opacity:0; transform: translateY(10px); }
+.reveal-in{ opacity:1; transform: none; transition: opacity .5s ease, transform .5s ease; }
+
+/* Floaty micro-animation */
+@keyframes floatyKey {
+  0% { transform: translateY(0) }
+  50%{ transform: translateY(-6px) }
+  100%{ transform: translateY(0) }
+}
+.floaty{ animation: floatyKey 4s ease-in-out infinite; will-change: transform; }
+
+/* Button micro interaction (opt-in via 'active' state) */
+button:active{ transform: translateY(1px) scale(.99); }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  #route-veil{ transition: none }
+  .section.route-enter, .section.route-leave{ animation: none !important }
+  .reveal-in{ transition: none }
+  .floaty{ animation: none }
+}
+
+
+/* === Advanced Animations Pack === */
+/* Choose mode via <body data-trans="cube|parallax|curtain"> */
+:root{
+  --trans-perspective: 1100px;
+  --trans-dur-in: .55s;
+  --trans-dur-out: .38s;
+}
+
+/* Animated underline for nav chips */
+.nav-btn{
+  position: relative;
+  overflow: hidden;
+}
+.nav-btn::after{
+  content:"";
+  position:absolute; left:12%; right:12%; bottom:.25rem; height:2px;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .28s ease;
+  border-radius: 2px;
+}
+.nav-btn:hover::after, .nav-btn[aria-current="page"]::after{
+  transform: scaleX(1);
+}
+
+/* Ripple click (JS injects .rpl) */
+.rpl{
+  position:absolute; inset:0; pointer-events:none; overflow:hidden;
+}
+.rpl span{
+  position:absolute; border-radius:50%;
+  width:12px; height:12px; opacity:.24;
+  background: radial-gradient(circle, rgba(255,255,255,.75), rgba(255,255,255,0) 60%);
+  transform: translate(-50%, -50%) scale(1);
+  animation: rpl .7s ease-out forwards;
+}
+@keyframes rpl{
+  to{ transform: translate(-50%, -50%) scale(35); opacity:0; }
+}
+
+/* Magnetic hover: target elements add [data-magnetic] attribute; JS will transform */
+
+/* --- Route transition: CUBE (3D rotate) --- */
+@keyframes cubeOut{
+  from{ opacity:1; transform: perspective(var(--trans-perspective)) rotateY(0) translateZ(0); filter:blur(0) }
+  to  { opacity:0; transform: perspective(var(--trans-perspective)) rotateY(-40deg) translateZ(-40px); filter:blur(1px) }
+}
+@keyframes cubeIn{
+  from{ opacity:0; transform: perspective(var(--trans-perspective)) rotateY(40deg) translateZ(-40px); filter:blur(1px) }
+  to  { opacity:1; transform: perspective(var(--trans-perspective)) rotateY(0) translateZ(0); filter:blur(0) }
+}
+body[data-trans="cube"] .section.route-enter{ animation: cubeIn var(--trans-dur-in) cubic-bezier(.2,.7,.2,1) both; }
+body[data-trans="cube"] .section.route-leave{ animation: cubeOut var(--trans-dur-out) ease both; }
+
+/* --- Route transition: PARALLAX SLIDE --- */
+@keyframes slideParallaxOut{
+  from{ opacity:1; transform: translate3d(0,0,0) }
+  to  { opacity:0; transform: translate3d(-28px,0,0) }
+}
+@keyframes slideParallaxIn{
+  from{ opacity:0; transform: translate3d(28px,0,0) }
+  to  { opacity:1; transform: translate3d(0,0,0) }
+}
+body[data-trans="parallax"] .section.route-enter{ animation: slideParallaxIn .52s cubic-bezier(.2,.7,.2,1) both; }
+body[data-trans="parallax"] .section.route-leave{ animation: slideParallaxOut .34s ease both; }
+
+/* --- Route transition: CURTAIN (diagonal clip) --- */
+#route-curtain{
+  position:fixed; inset:0; pointer-events:none; z-index:85;
+  background: linear-gradient(135deg, rgba(34,211,238,.22), rgba(167,139,250,.22) 35%, rgba(2,6,23,.95) 70%);
+  clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  transition: clip-path .5s cubic-bezier(.2,.7,.2,1);
+}
+#route-curtain.on{
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+/* also fade sections a bit for curtain */
+body[data-trans="curtain"] .section.route-enter{ animation: routeIn .42s cubic-bezier(.2,.7,.2,1) both; }
+body[data-trans="curtain"] .section.route-leave{ animation: routeOut .28s ease both; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .nav-btn::after{ transition:none }
+  .rpl span{ animation:none }
+  #route-curtain{ transition:none }
+  body[data-trans="cube"] .section.route-enter,
+  body[data-trans="cube"] .section.route-leave,
+  body[data-trans="parallax"] .section.route-enter,
+  body[data-trans="parallax"] .section.route-leave,
+  body[data-trans="curtain"] .section.route-enter,
+  body[data-trans="curtain"] .section.route-leave{ animation:none !important }
+}
