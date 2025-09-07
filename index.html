@@ -30,14 +30,13 @@
 
       <!-- Logo + Judul (sejajar) -->
       <div class="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-        <button id="logo-btn" class="w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden ring-1 ring-white/10" aria-label="Muat ulang">
-          <img src="./assets/img/logo.png" alt="Logo" class="w-full h-full object-cover"/>
-        </button>
-        
-        <h1 class="text-base md:text-xl font-extrabold tracking-tight leading-tight sm:truncate">
+        <button id="logo-btn" class="w-15 h-14 md:w-14 md:h-14 rounded-2xl overflow-hidden ring-1 ring-white/15 shrink-0" aria-label="Muat ulang">
+        <img src="./assets/img/logo.png" alt="Logo" class="w-full h-full object-cover"/>
+        </button>  
+        <h1 class="font-extrabold tracking-tight leading-none sm:truncate text-[clamp(1.25rem,4vw,2rem)]">
           RIUNGMUNGPULUNG MABA
-        </h1>
-      </div>
+          </h1>
+          </div>
 
       <!-- Navigasi (di bawah judul pada HP, di kanan pada desktop) -->
       <div class="w-full md:w-auto flex flex-wrap items-center gap-1 md:gap-2 mt-1 md:mt-0">
@@ -51,28 +50,36 @@
 
   <main class="max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-8 md:space-y-10">
 
-    <!-- HERO: hanya tampil di menu Pendaftaran -->
-    <section id="section-hero" class="hidden mt-6 rounded-2xl border border-white/5 bg-slate-900/40 p-6 md:p-8">
-      <div class="grid items-center gap-8 md:grid-cols-2">
-        <div>
-          <h2 class="text-3xl font-extrabold tracking-tight md:text-4xl">
-            Meet & Greet — RIUNGMUNGPULUNG MABA
-          </h2>
-          <ol class="mt-4 space-y-2 text-slate-300">
-            <li>1. Isi form pendaftaran</li>
-            <li>2. Transfer ke nomor rekening yang tertera</li>
-            <li>3. Upload bukti transfer → otomatis keluar <span class="font-semibold">QR/Kode</span></li>
-            <li>4. Tunjukkan QR saat check-in</li>
-          </ol>
-        </div>
+<!-- HERO: judul kiri, logo kanan (mobile), tetap rapi di desktop -->
+<section id="section-hero" class="hidden mt-6 rounded-2xl border border-white/5 bg-slate-900/40 p-6 md:p-8">
+  <div class="relative space-y-4 md:space-y-6">
+    <!-- Baris atas: judul + (logo inline di HP) -->
+    <div class="flex items-start justify-between md:block">
+      <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-tight">
+        Meet &amp; Greet — RIUNGMUNGPULUNG MABA
+      </h2>
 
-        <!-- logo kanan -->
-        <div class="flex justify-center md:justify-end">
-          <img src="assets/img/images.png" alt="Logo RIUNGMUNGPULUNG"
-              class="h-32 w-32 md:h-40 md:w-40 rounded-full ring-1 ring-white/10 object-cover" loading="lazy"/>
-        </div>
-      </div>
-    </section>
+      <!-- Satu gambar saja: inline di HP, absolute di desktop -->
+      <img
+        src="assets/img/images.png"
+        alt="Universitas Terbuka"
+        class="w-16 h-16 rounded-full ring-1 ring-white/10 object-cover
+               md:w-40 md:h-40 md:absolute md:right-6 md:top-6"
+        loading="lazy"
+      />
+    </div>
+
+    <!-- List langkah: selalu pakai lebar penuh -->
+    <ol class="space-y-2 text-slate-300 text-sm md:text-base">
+      <li>1. Isi form pendaftaran</li>
+      <li>2. Transfer ke nomor rekening yang tertera</li>
+      <li>3. Upload bukti transfer → otomatis keluar <span class="font-semibold">QR/Kode</span></li>
+      <li>4. Tunjukkan QR saat check-in</li>
+    </ol>
+  </div>
+</section>
+
+
 
     <!-- FORM PENDAFTARAN (tambahkan id section-register) -->
     <section id="section-register" class="section mt-8 rounded-2xl border border-white/5 bg-slate-900/40 p-6 md:p-8">
