@@ -11,7 +11,10 @@ export async function buildTicketImage(rec, opt = {}) {
   const TITLE_WEIGHT = opt.titleWeight || 800;  // ketebalan judul
   const TITLE_GAP    = opt.titleGap    || 28;   // jarak setelah judul
   const NAME_SIZE    = opt.nameSize    || 96;   // besar font nama
-  const MIN_QR_MARGIN_FROM_TITLE = Math.max(20, TITLE_GAP); // jarak aman QR dari judul
+
+  // Kontrol baris pill (Status/Bayar)
+  const PILL_H   = 56;  // tinggi pill
+  const PILL_GAP = 14;  // jarak antar baris pill
 
   // === Canvas
   const cv = document.createElement("canvas");
@@ -56,7 +59,7 @@ export async function buildTicketImage(rec, opt = {}) {
 
   // ---- Header (judul + nama)
   const LEFT = cardX + 60;
-  const titleTop = cardY + 120;        // posisi atas judul (konsisten)
+  const titleTop = cardY + 120;
   let y = titleTop;
 
   ctx.textBaseline = "top";
@@ -64,28 +67,20 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.font = `${TITLE_WEIGHT} ${TITLE_SIZE}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
   ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", LEFT, y);
 
-  const titleBottom = titleTop + TITLE_SIZE; // tinggi judul → batas bawah judul
-
-  // jarak setelah judul
+  const titleBottom = titleTop + TITLE_SIZE;
   y = titleBottom + TITLE_GAP;
 
-  // nama
+  // Nama
   ctx.fillStyle = "#ffffff";
   ctx.font = `800 ${NAME_SIZE}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
   ctx.fillText(String(rec?.nama || "-"), LEFT, y);
 
-  const nameTop    = y;
-  const nameBottom = nameTop + NAME_SIZE;
+  const nameBottom = y + NAME_SIZE;
 
-  // ---- QR panel putih
+  // ---- QR panel putih (selalu di bawah judul)
   const PANEL = QR_SIZE + 140;
   const qxPanel = cardX + cardW - PANEL - 88;
-
-  // Pastikan panel QR SELALU dimulai DI BAWAH judul (tidak menabrak)
-  let qyPanel = Math.max(
-    cardY + 140,
-    titleBottom + MIN_QR_MARGIN_FROM_TITLE
-  );
+  const qyPanel = Math.max(cardY + 140, titleBottom + TITLE_GAP);
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 28;
@@ -105,11 +100,12 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.drawImage(qrCanvas, qxPanel + (PANEL-QR_SIZE)/2, qyPanel + (PANEL-QR_SIZE)/2, QR_SIZE, QR_SIZE);
 
   // ---- Kolom kiri
-  y = nameBottom + 70;                 // mulai kolom info setelah nama
+  y = nameBottom + 70;                 // mulai setelah nama
   const LBL_W = 210;
   const lineStep = 72;
 
   const line = (label, value) => {
+    ctx.textBaseline = "alphabetic";
     ctx.font = "700 44px system-ui, -apple-system, Segoe UI";
     ctx.fillStyle = "rgba(203,213,225,1)";
     ctx.fillText(label, LEFT, y);
@@ -124,22 +120,23 @@ export async function buildTicketImage(rec, opt = {}) {
   line("WA",       waPretty(rec?.wa));
   line("Kode",     rec?.code || "-");
 
-  // ---- Dua baris pill: Status & Bayar
+  // ---- Dua baris pill: Status & Bayar (SEJAJAR TENGAH)
   const attended = Number(rec?.attended) === 1;
   const paid = Number(rec?.paid) === 1;
 
-  // Baris 1: Status
-  y += 8;
-  const p1 = drawPillLabel(ctx, "Status:", LEFT, y - 46);
+  // Row 1: Status
+  let rowTop = y + 8; // sedikit jarak dari baris sebelumnya
+  const p1 = drawPillLabel(ctx, "Status:", LEFT, rowTop, PILL_H);
   drawPillValue(ctx, attended ? "Hadir" : "Terdaftar",
-                p1.x + p1.w + 18, y - 46,
+                p1.x + p1.w + 18, rowTop, PILL_H,
                 attended ? "#60a5fa" : "#f59e0b");
-  y += 66;
+  y = rowTop + PILL_H + PILL_GAP;
 
-  // Baris 2: Bayar
-  const p2 = drawPillLabel(ctx, "Bayar:", LEFT, y - 46);
+  // Row 2: Bayar
+  rowTop = y;
+  const p2 = drawPillLabel(ctx, "Bayar:", LEFT, rowTop, PILL_H);
   drawPillValue(ctx, paid ? "Sudah" : "Belum",
-                p2.x + p2.w + 18, y - 46,
+                p2.x + p2.w + 18, rowTop, PILL_H,
                 paid ? "#34d399" : "#ef4444");
 
   return cv.toDataURL("image/png");
@@ -156,22 +153,32 @@ export async function buildTicketImage(rec, opt = {}) {
     ctx.closePath();
   }
 
-  // Label kiri (tanpa background)
-  function drawPillLabel(ctx, text, x, y){
+  // Label kiri (tanpa background), baseline middle → sejajar dengan pill
+  function drawPillLabel(ctx, text, x, yTop, H){
+    ctx.save();
+    ctx.textBaseline = "middle";
     ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
-    const textW = Math.ceil(ctx.measureText(text).width);
     ctx.fillStyle = "rgba(203,213,225,1)";
-    ctx.fillText(text, x, y + 56 - 16);
-    const w = textW + 60;
-    return { x, y, w, h: 56 };
+    const cy = yTop + H/2;
+    ctx.fillText(text, x, cy);
+    const textW = Math.ceil(ctx.measureText(text).width);
+    ctx.restore();
+    const w = textW + 60; // padding kecil agar jarak ke value konsisten
+    return { x, y: yTop, w, h: H };
   }
 
-  function drawPillValue(ctx, text, x, y, bg){
+  // Nilai pill (dengan background), baseline middle
+  function drawPillValue(ctx, text, x, yTop, H, bg){
+    const PADX = 28;
+    ctx.save();
+    ctx.textBaseline = "middle";
     ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
-    const w = Math.ceil(ctx.measureText(text).width) + 28*2;
-    ctx.beginPath(); roundRect(ctx, x, y, w, 56, 16);
+    const w = Math.ceil(ctx.measureText(text).width) + PADX*2;
+    roundRect(ctx, x, yTop, w, H, 16);
     ctx.fillStyle = bg; ctx.fill();
-    ctx.fillStyle = "#0b1220"; ctx.fillText(text, x + 28, y + 56 - 16);
+    ctx.fillStyle = "#0b1220";
+    ctx.fillText(text, x + PADX, yTop + H/2);
+    ctx.restore();
   }
 
   async function makeQR(text, size){
