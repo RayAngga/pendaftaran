@@ -4,7 +4,7 @@ import { bindRegister } from "./register.js";
 import { bindPayment }  from "./payment.js";
 import { bindAdmin }    from "./admin.js";
 import { startScan, stopScan } from "./scanner.js";
-import { bindTicket }   from "./ticket.js";  // tiket → canvas & unduh PNG
+import { bindTicket }   from "./ticket.js"; // tiket → canvas & unduh PNG
 
 // helper aman
 const on = (id, evt, fn) => {
@@ -14,11 +14,10 @@ const on = (id, evt, fn) => {
 };
 
 function ensureRegisterWorks() {
-  // pastikan form & tombol submit benar
-  const form = document.getElementById("form-register");
-  if (!form) { console.warn("[register] #form-register tidak ditemukan"); return; }
+  const form = document.getElementById("reg-form");
+  if (!form) { console.warn("[register] #reg-form tidak ditemukan"); return; }
 
-  // cari tombol submit (by type atau text)
+  // pastikan tombol submit benar
   let submitBtn = form.querySelector('button[type="submit"]');
   if (!submitBtn) {
     submitBtn = Array.from(form.querySelectorAll("button")).find(b =>
@@ -26,33 +25,31 @@ function ensureRegisterWorks() {
     ) || null;
   }
   if (submitBtn && (submitBtn.type || "").toLowerCase() !== "submit") {
-    submitBtn.type = "submit"; // paksa jadi submit
+    submitBtn.type = "submit";
   }
 
-  // jika klik tombol tidak memicu submit (UA/bug tertentu), fallback manual
+  // fallback kalau UA tertentu tidak memicu submit
   submitBtn?.addEventListener("click", (e) => {
-    // jika browser tidak punya requestSubmit, kita manual dispatch
     if (typeof form.requestSubmit !== "function") {
       e.preventDefault();
       form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
     }
   });
 
-  // logging ringan agar kelihatan di Console saat submit tertangkap
   form.addEventListener("submit", () => {
     console.log("[register] submit tertangkap");
-  }, { capture: true, once: false });
+  }, { capture: true });
 
-  console.log("[register] ensureRegisterWorks aktif");
+  console.log("[main] ensureRegisterWorks aktif");
 }
 
 function safeInit() {
-  // footer tahun & hard-refresh via logo
+  // footer tahun & hard refresh via logo
   const y = document.getElementById("year");
   if (y) y.textContent = String(new Date().getFullYear());
   on("logo-btn", "click", () => location.reload());
 
-  // init modul (tanpa saling menjatuhkan)
+  // init modul — error satu modul tidak menjatuhkan lainnya
   try { bindNav?.();      } catch (e) { console.error("bindNav error:", e); }
   try { bindRegister?.(); } catch (e) { console.error("bindRegister error:", e); }
   try { bindPayment?.();  } catch (e) { console.error("bindPayment error:", e); }
@@ -60,8 +57,8 @@ function safeInit() {
   try { bindAdmin?.();    } catch (e) { console.error("bindAdmin error:", e); }
 
   // scanner controls (jika ada di halaman)
-  on("scan-start","click", startScan);
-  on("scan-stop","click",  stopScan);
+  on("scan-start", "click", startScan);
+  on("scan-stop",  "click", stopScan);
 
   // ENTER pada input tiket = klik tombol cari
   const tSearch = document.getElementById("t-search");
@@ -71,13 +68,13 @@ function safeInit() {
     });
   }
 
-  // pastikan tombol Daftar benar2 bekerja
+  // pastikan tombol Daftar benar-benar bekerja
   ensureRegisterWorks();
 
   console.log("[main] init selesai");
 }
 
-// Pastikan DOM siap sebelum init (lebih aman lintas browser/penempatan script)
+// Pastikan DOM siap sebelum init
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", safeInit, { once: true });
 } else {
