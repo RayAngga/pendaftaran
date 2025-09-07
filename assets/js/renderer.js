@@ -99,7 +99,6 @@ export async function buildTicketImage(rec, opt = {}) {
   line("Fakultas", rec?.fakultas || "-");
   line("Prodi",    rec?.prodi    || "-");
   line("WA",       waPretty(rec?.wa));
-  line("Makanan",  toFood(rec?.makanan));
   line("Kode",     rec?.code || "-");
 
   // ---- Dua baris pill: Status & Bayar
