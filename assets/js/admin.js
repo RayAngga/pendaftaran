@@ -147,7 +147,7 @@ function bindActions(){
   if (btnExport){
     btnExport.addEventListener("click", ()=>{
       const rows = applyFilter(ROWS_RAW, lastFilter);
-      const header = ["id","createdAt","nama","fakultas","prodi","wa","makanan","domisili","paid","attended","code","proofUrl"];
+      const header = ["id","createdAt","nama","fakultas","prodi","wa","domisili","paid","attended","code","proofUrl"];
       const csv = [header.join(",")].concat(
         rows.map(r => header.map(k => {
           const raw = r[k] ?? "";
