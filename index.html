@@ -31,7 +31,7 @@
       <!-- Logo + Judul (sejajar) -->
       <div class="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
         <button id="logo-btn" class="w-8 h-8 md:w-10 md:h-10 rounded-xl overflow-hidden ring-1 ring-white/10" aria-label="Muat ulang">
-          <img src="./assets/img/xlogo.png" alt="Logo" class="w-full h-full object-cover"/>
+          <img src="./assets/img/logo.png" alt="Logo" class="w-full h-full object-cover"/>
         </button>
         
         <h1 class="text-base md:text-xl font-extrabold tracking-tight leading-tight sm:truncate">
@@ -51,63 +51,96 @@
 
   <main class="max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-8 md:space-y-10">
 
-    <!-- HERO (ditampilkan hanya saat tab Daftar aktif via JS) -->
-    <section id="section-hero" class="rounded-2xl p-4 md:p-8 bg-gradient-to-br from-[var(--brand)]/20 via-slate-900 to-[var(--accent)]/20 border border-white/10">
-      <h2 class="text-xl md:text-3xl font-extrabold mb-2">Meet & Greet — RIUNGMUNGPULUNG MABA</h2>
-      <ol class="text-slate-300 text-sm list-decimal list-inside space-y-1">
-        <li>Isi form pendaftaran</li>
-        <li>Transfer ke nomor rekening yang tertera</li>
-        <li>Upload bukti transfer → otomatis keluar <b>QR/Kode</b></li>
-        <li>Tunjukkan QR saat check-in</li>
-      </ol>
+    <!-- HERO: hanya tampil di menu Pendaftaran -->
+    <section id="section-hero" class="hidden mt-6 rounded-2xl border border-white/5 bg-slate-900/40 p-6 md:p-8">
+      <div class="grid items-center gap-8 md:grid-cols-2">
+        <div>
+          <h2 class="text-3xl font-extrabold tracking-tight md:text-4xl">
+            Meet & Greet — RIUNGMUNGPULUNG MABA
+          </h2>
+          <ol class="mt-4 space-y-2 text-slate-300">
+            <li>1. Isi form pendaftaran</li>
+            <li>2. Transfer ke nomor rekening yang tertera</li>
+            <li>3. Upload bukti transfer → otomatis keluar <span class="font-semibold">QR/Kode</span></li>
+            <li>4. Tunjukkan QR saat check-in</li>
+          </ol>
+        </div>
+
+        <!-- logo kanan -->
+        <div class="flex justify-center md:justify-end">
+          <img src="assets/img/images.png" alt="Logo RIUNGMUNGPULUNG"
+              class="h-32 w-32 md:h-40 md:w-40 rounded-full ring-1 ring-white/10 object-cover" loading="lazy"/>
+        </div>
+      </div>
     </section>
 
-    <!-- REGISTER -->
-    <section id="section-register" class="section space-y-4 md:space-y-6">
-      <h3 class="text-lg md:text-xl font-bold">Form Pendaftaran</h3>
-      <form id="form-register" class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 bg-white/5 p-4 md:p-5 rounded-xl border border-white/10">
-        <div class="md:col-span-2">
-          <label class="block text-sm mb-1">Nama Lengkap *</label>
-          <input id="f-nama" required class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Nama lengkap">
-        </div>
+    <!-- FORM PENDAFTARAN (tambahkan id section-register) -->
+    <section id="section-register" class="section mt-8 rounded-2xl border border-white/5 bg-slate-900/40 p-6 md:p-8">
+      <h3 class="text-xl font-semibold">Form Pendaftaran</h3>
+
+      <form id="reg-form" class="mt-6 space-y-6">
+        <!-- Nama -->
         <div>
-          <label class="block text-sm mb-1">Fakultas</label>
-          <select id="f-fakultas" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10">
-            <option value="" disabled selected>Pilih Fakultas</option>
-            <option value="FST">FST</option>
-            <option value="FKIP">FKIP</option>
-            <option value="FEB">FEB</option>
-            <option value="FHISIP">FHISIP</option>
-          </select>
+          <label class="mb-2 block text-sm text-slate-300">Nama Lengkap *</label>
+          <input id="name" type="text" placeholder="Nama lengkap"
+            class="w-full rounded-lg border border-white/10 bg-slate-800/70 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400/50">
         </div>
-        <div>
-          <label class="block text-sm mb-1">Prodi</label>
-          <input id="f-prodi" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Program studi">
+
+        <!-- Grid: Fakultas / Prodi -->
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm text-slate-300">Fakultas</label>
+            <select id="faculty"
+              class="w-full rounded-lg border border-white/10 bg-slate-800/70 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400/50">
+              <option value="" selected>Pilih Fakultas</option>
+              <option value="FST">FST</option>
+              <option value="FKIP">FKIP</option>
+              <option value="FEB">FEB</option>
+              <option value="FHISIP">FHISIP</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm text-slate-300">Prodi</label>
+            <input id="major" type="text" placeholder="Program studi"
+              class="w-full rounded-lg border border-white/10 bg-slate-800/70 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400/50">
+          </div>
         </div>
-        <div>
-          <label class="block text-sm mb-1">No. WhatsApp *</label>
-          <input id="f-wa" required inputmode="numeric" pattern="[0-9+ ]*" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="08xxxx">
+
+        <!-- Grid: WhatsApp / Domisili -->
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm text-slate-300">No. WhatsApp *</label>
+            <input id="wa" type="tel" inputmode="numeric" placeholder="08xxxx"
+              class="w-full rounded-lg border border-white/10 bg-slate-800/70 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400/50">
+          </div>
+
+          <div>
+            <label class="mb-2 block text-sm text-slate-300">Domisili</label>
+            <input id="city" type="text" placeholder="Kota/Kabupaten"
+              class="w-full rounded-lg border border-white/10 bg-slate-800/70 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400/50">
+          </div>
         </div>
-        <div>
-          <label class="block text-sm mb-1">Pesanan Makanan</label>
-          <select id="f-makanan" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10"></select>
-          <p class="text-[11px] text-slate-400 mt-1">Edit opsi di variabel <code>FOOD_OPTIONS</code>.</p>
+
+        <!-- Persetujuan -->
+        <div class="flex items-center gap-3">
+          <input id="agree" type="checkbox"
+            class="h-4 w-4 rounded border-white/10 bg-slate-800/70 text-cyan-400 focus:ring-0">
+          <label for="agree" class="text-sm text-slate-300">Saya setuju dengan ketentuan acara.</label>
         </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm mb-1">Domisili</label>
-          <input id="f-domisili" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="Kota/Kabupaten">
+
+        <!-- Tombol -->
+        <div class="flex gap-3">
+          <button type="submit"
+            class="rounded-lg bg-cyan-500/90 px-5 py-3 text-sm font-medium text-white hover:bg-cyan-500 focus:outline-none">
+            Daftar
+          </button>
+          <button type="reset"
+            class="rounded-lg border border-white/10 bg-transparent px-5 py-3 text-sm text-slate-200 hover:bg-white/5">
+            Reset
+          </button>
         </div>
-        <div class="md:col-span-2 flex items-center gap-2">
-          <input id="f-consent" type="checkbox" required class="size-4">
-          <label for="f-consent" class="text-sm text-slate-300">Saya setuju dengan ketentuan acara.</label>
-        </div>
-        <div class="md:col-span-2 flex gap-2 md:gap-3">
-          <button class="px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold" type="submit">Daftar</button>
-          <button id="btn-reset-form" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20" type="button">Reset</button>
-        </div>
-        <p id="register-msg" class="md:col-span-2 text-sm"></p>
       </form>
-      <p id="kuota-info" class="text-xs text-slate-400"></p>
     </section>
 
     <!-- PAYMENT -->
@@ -181,7 +214,7 @@
         <div class="max-w-sm md:max-w-none mx-auto flex flex-col md:flex-row gap-3 md:gap-4 items-center md:items-center text-center md:text-left">
           <div class="w-full md:flex-1">
             <label class="block text-sm mb-1">LOGIN</label>
-            <input id="admin-pass" type="password" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="••••••">
+            <input id="admin-pass" type="password" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/10" placeholder="••••••" />
           </div>
           <button id="admin-enter" class="w-full md:w-auto px-4 py-2 rounded-lg bg-[var(--brand)] hover:opacity-90 font-semibold">Masuk</button>
         </div>
