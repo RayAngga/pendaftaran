@@ -6,12 +6,14 @@ export async function buildTicketImage(rec, opt = {}) {
   const QR_SIZE = opt.qrSize || 520;
   const DPR = (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1;
 
-  // Kontrol tampilan judul
-  const TITLE_SIZE   = opt.titleSize   || 72;  // besar font judul
-  const TITLE_WEIGHT = opt.titleWeight || 800; // ketebalan judul
-  const TITLE_GAP    = opt.titleGap    || 28;  // jarak setelah judul
+  // Kontrol tampilan judul & nama
+  const TITLE_SIZE   = opt.titleSize   || 72;   // besar font judul
+  const TITLE_WEIGHT = opt.titleWeight || 800;  // ketebalan judul
+  const TITLE_GAP    = opt.titleGap    || 28;   // jarak setelah judul
+  const NAME_SIZE    = opt.nameSize    || 96;   // besar font nama
+  const MIN_QR_MARGIN_FROM_TITLE = Math.max(20, TITLE_GAP); // jarak aman QR dari judul
 
-  // === Canvas setup
+  // === Canvas
   const cv = document.createElement("canvas");
   cv.width = Math.round(W * DPR);
   cv.height = Math.round(H * DPR);
@@ -52,27 +54,38 @@ export async function buildTicketImage(rec, opt = {}) {
   gStripe.addColorStop(0, "#22d3ee"); gStripe.addColorStop(1, "#a78bfa");
   ctx.fillStyle = gStripe; ctx.fillRect(cardX, cardY+cardH-stripeH, cardW, stripeH);
 
-  // ---- Header (judul lebih besar + ada jarak bawah)
+  // ---- Header (judul + nama)
   const LEFT = cardX + 60;
-  let y = cardY + 120;
+  const titleTop = cardY + 120;        // posisi atas judul (konsisten)
+  let y = titleTop;
 
   ctx.textBaseline = "top";
   ctx.fillStyle = "#e7eef7";
   ctx.font = `${TITLE_WEIGHT} ${TITLE_SIZE}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
   ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", LEFT, y);
 
+  const titleBottom = titleTop + TITLE_SIZE; // tinggi judul → batas bawah judul
+
   // jarak setelah judul
-  y += TITLE_SIZE + TITLE_GAP;
+  y = titleBottom + TITLE_GAP;
 
   // nama
   ctx.fillStyle = "#ffffff";
-  ctx.font = "800 96px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
+  ctx.font = `800 ${NAME_SIZE}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
   ctx.fillText(String(rec?.nama || "-"), LEFT, y);
+
+  const nameTop    = y;
+  const nameBottom = nameTop + NAME_SIZE;
 
   // ---- QR panel putih
   const PANEL = QR_SIZE + 140;
   const qxPanel = cardX + cardW - PANEL - 88;
-  const qyPanel = Math.max(cardY + 140, y - 96); // tetap aman dari judul/nama
+
+  // Pastikan panel QR SELALU dimulai DI BAWAH judul (tidak menabrak)
+  let qyPanel = Math.max(
+    cardY + 140,
+    titleBottom + MIN_QR_MARGIN_FROM_TITLE
+  );
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 28;
@@ -91,8 +104,8 @@ export async function buildTicketImage(rec, opt = {}) {
   const qrCanvas = await makeQR(String(rec?.code || rec?.id || "NO-CODE"), QR_SIZE);
   ctx.drawImage(qrCanvas, qxPanel + (PANEL-QR_SIZE)/2, qyPanel + (PANEL-QR_SIZE)/2, QR_SIZE, QR_SIZE);
 
-  // ---- Kolom kiri (jarak dinaikkan ke 72px)
-  y += 70;
+  // ---- Kolom kiri
+  y = nameBottom + 70;                 // mulai kolom info setelah nama
   const LBL_W = 210;
   const lineStep = 72;
 
@@ -120,7 +133,7 @@ export async function buildTicketImage(rec, opt = {}) {
   const p1 = drawPillLabel(ctx, "Status:", LEFT, y - 46);
   drawPillValue(ctx, attended ? "Hadir" : "Terdaftar",
                 p1.x + p1.w + 18, y - 46,
-                attended ? "#60a5fa" : "#f59e0b"); // biru utk hadir, kuning utk terdaftar
+                attended ? "#60a5fa" : "#f59e0b");
   y += 66;
 
   // Baris 2: Bayar
@@ -143,13 +156,13 @@ export async function buildTicketImage(rec, opt = {}) {
     ctx.closePath();
   }
 
-  // ★★ Diubah: hanya teks label (tanpa pill background)
+  // Label kiri (tanpa background)
   function drawPillLabel(ctx, text, x, y){
     ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
     const textW = Math.ceil(ctx.measureText(text).width);
     ctx.fillStyle = "rgba(203,213,225,1)";
-    ctx.fillText(text, x, y + 56 - 16); // sejajar dengan pill value
-    const w = textW + 60;               // padding kecil untuk jarak ke value
+    ctx.fillText(text, x, y + 56 - 16);
+    const w = textW + 60;
     return { x, y, w, h: 56 };
   }
 
@@ -194,11 +207,5 @@ export async function buildTicketImage(rec, opt = {}) {
     let i = 0; const pattern = [4,4,4,4];
     for (const n of pattern){ if (i >= s.length) break; parts.push(s.slice(i, i+n)); i += n; }
     return parts.join("-");
-  }
-
-  function toFood(m){
-    if (!m) return "-";
-    if (typeof m === "object") return m.label || m.value || "-";
-    return String(m);
   }
 }
