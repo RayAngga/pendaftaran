@@ -174,7 +174,6 @@ async function paintFallbackCard(rec) {
   y += 40; drawLine(ctx, "Fakultas:", rec.fakultas, leftX, y);
   y += 40; drawLine(ctx, "Prodi:",    rec.prodi,    leftX, y);
   y += 40; drawLine(ctx, "WA:",       waDisplay(rec.wa), leftX, y);
-  y += 40; drawLine(ctx, "Makanan:",  rec.makanan,  leftX, y);
   y += 40; drawLine(ctx, "Domisili:", rec.domisili, leftX, y);
   y += 40; drawLine(ctx, "Kode:",     rec.code || "-", leftX, y);
   y += 40; drawBadgeRow(ctx, "Status:", "Terdaftar", leftX, y, { bg:"#f59e0b", fg:"#111827" });
