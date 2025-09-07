@@ -38,7 +38,6 @@ export async function findUnpaidByWA(){
       <div><b>Fakultas:</b> ${rec.fakultas || "-"}</div>
       <div><b>Prodi:</b> ${rec.prodi || "-"}</div>
       <div><b>No. WA:</b> ${rec.wa}</div>
-      <div><b>Pesanan:</b> ${rec.makanan || "-"}</div>
       <div><b>Domisili:</b> ${rec.domisili || "-"}</div>
       <div><b>Status Bayar:</b> ${Number(rec.paid)
         ? '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Sudah</span>'
