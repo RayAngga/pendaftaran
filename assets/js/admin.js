@@ -38,7 +38,6 @@ function rowHtml(r){
       <td class="px-3 py-2">${text(r.fakultas || "-")}</td>
       <td class="px-3 py-2">${text(r.prodi || "-")}</td>
       <td class="px-3 py-2 font-mono">${text(r.wa || "-")}</td>
-      <td class="px-3 py-2">${text(r.makanan || "-")}</td>
       <td class="px-3 py-2">${text(r.domisili || "-")}</td>
       <td class="px-3 py-2">
         <button class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 btn-paid" data-id="${escapeHtml(r.id)}">
