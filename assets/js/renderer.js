@@ -2,10 +2,16 @@
 export async function buildTicketImage(rec, opt = {}) {
   const W = opt.width  || 1920;
   const H = opt.height || 1080;
-  const BLEED = opt.bleed || 40;
+  const BLEED   = opt.bleed  || 40;
   const QR_SIZE = opt.qrSize || 520;
   const DPR = (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1;
 
+  // Kontrol tampilan judul
+  const TITLE_SIZE   = opt.titleSize   || 72;  // besar font judul
+  const TITLE_WEIGHT = opt.titleWeight || 800; // ketebalan judul
+  const TITLE_GAP    = opt.titleGap    || 28;  // jarak setelah judul
+
+  // === Canvas setup
   const cv = document.createElement("canvas");
   cv.width = Math.round(W * DPR);
   cv.height = Math.round(H * DPR);
@@ -46,15 +52,19 @@ export async function buildTicketImage(rec, opt = {}) {
   gStripe.addColorStop(0, "#22d3ee"); gStripe.addColorStop(1, "#a78bfa");
   ctx.fillStyle = gStripe; ctx.fillRect(cardX, cardY+cardH-stripeH, cardW, stripeH);
 
-  // ---- Header
+  // ---- Header (judul lebih besar + ada jarak bawah)
   const LEFT = cardX + 60;
   let y = cardY + 120;
 
+  ctx.textBaseline = "top";
   ctx.fillStyle = "#e7eef7";
-  ctx.font = "800 56px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
+  ctx.font = `${TITLE_WEIGHT} ${TITLE_SIZE}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
   ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", LEFT, y);
 
-  y += 88;
+  // jarak setelah judul
+  y += TITLE_SIZE + TITLE_GAP;
+
+  // nama
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 96px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
   ctx.fillText(String(rec?.nama || "-"), LEFT, y);
@@ -62,7 +72,7 @@ export async function buildTicketImage(rec, opt = {}) {
   // ---- QR panel putih
   const PANEL = QR_SIZE + 140;
   const qxPanel = cardX + cardW - PANEL - 88;
-  const qyPanel = Math.max(cardY + 140, y - 96);
+  const qyPanel = Math.max(cardY + 140, y - 96); // tetap aman dari judul/nama
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 28;
@@ -133,16 +143,13 @@ export async function buildTicketImage(rec, opt = {}) {
     ctx.closePath();
   }
 
-  // ★★ Diubah: tidak lagi menggambar background; hanya teks label biasa
+  // ★★ Diubah: hanya teks label (tanpa pill background)
   function drawPillLabel(ctx, text, x, y){
     ctx.font = "800 34px system-ui, -apple-system, Segoe UI";
     const textW = Math.ceil(ctx.measureText(text).width);
-    // Gambar teks label (abu-abu muda, konsisten dengan label lain)
     ctx.fillStyle = "rgba(203,213,225,1)";
-    // Posisi teks tetap mengikuti baseline lama (56 tinggi + padding 16)
-    ctx.fillText(text, x, y + 56 - 16);
-    // Tetap kembalikan width dengan sedikit padding agar jarak ke nilai tetap sama
-    const w = textW + 60;
+    ctx.fillText(text, x, y + 56 - 16); // sejajar dengan pill value
+    const w = textW + 60;               // padding kecil untuk jarak ke value
     return { x, y, w, h: 56 };
   }
 
