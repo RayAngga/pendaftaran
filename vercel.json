@@ -1,29 +1,11 @@
 {
-  "version": 2,
-  "headers": [
+  "routes": [
+    { "src": "^/(_next/.*|static/.*|assets/.*|favicon\\.ico|robots\\.txt)$", "dest": "/$1" },
     {
-      "source": "/(index.html)?",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "Pragma", "value": "no-cache" },
-        { "key": "Expires", "value": "0" }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate" },
-        { "key": "Pragma", "value": "no-cache" },
-        { "key": "Expires", "value": "0" }
-      ]
+      "src": "^(?!/maintenance\\.html).*",
+      "dest": "/maintenance.html",
+      "status": 503,
+      "headers": { "cache-control": "no-store", "x-maintenance": "1" }
     }
-  ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/assets/(.*)", "destination": "/assets/$1" },
-    { "source": "/script/(.*)", "destination": "/script/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  ]
 }
