@@ -63,7 +63,7 @@ function applyFilter(rows, q){
   const s = q.toLowerCase();
   return rows.filter(r=>{
     return [
-      r.code, r.nama, r.fakultas, r.prodi, r.wa, r.makanan, r.domisili
+      r.code, r.nama, r.fakultas, r.prodi, r.wa, r.domisili
     ].some(v => (v??"").toString().toLowerCase().includes(s));
   });
 }
