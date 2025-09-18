@@ -155,7 +155,7 @@ async function paintFallbackCard(rec) {
   // judul dan nama
   const leftX = cardX + 48; let y = cardY + 88;
   ctx.fillStyle = "#ffffff"; ctx.font = "800 44px system-ui, -apple-system, Segoe UI";
-  ctx.fillText("RIUNGMUNGPULUNG MABA — E-Ticket", leftX, y);
+  ctx.fillText("GROW TOGETHER FLOW TOGETHER MABA — E-Ticket", leftX, y);
   const titleBottom = y + 20;
   y += 56; ctx.font = "700 34px system-ui, -apple-system, Segoe UI";
   ctx.fillText(String(rec.nama || "-"), leftX, y);

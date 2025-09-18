@@ -44,7 +44,7 @@ function getSheet() {
 }
 function nowStr() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'); }
 function toObj(row) { const o={}; HEADERS.forEach((h,i)=> o[h]=row[i]); o.paid=Number(o.paid||0); o.attended=Number(o.attended||0); return o; }
-function toRow(o) { return [ o.id||'', o.createdAt||nowStr(), o.nama||'', o.fakultas||'', o.prodi||'', o.wa||'', o.makanan||'', o.domisili||'', Number(o.paid||0), Number(o.attended||0), o.code||'', o.proofUrl||'' ]; }
+function toRow(o) { return [ o.id||'', o.createdAt||nowStr(), o.nama||'', o.fakultas||'', o.prodi||'', o.wa||'', o.domisili||'', Number(o.paid||0), Number(o.attended||0), o.code||'', o.proofUrl||'' ]; }
 function readAll() { const sh=getSheet(); const last=sh.getLastRow(); if(last<2) return []; const rows=sh.getRange(2,1,last-1,HEADERS.length).getValues().map(toObj); return rows.map((r,i)=>({...r,_row:i+2})); }
 function writeRow(rowIndex, obj) { const sh=getSheet(); sh.getRange(rowIndex,1,1,HEADERS.length).setValues([toRow(obj)]); }
 
@@ -69,7 +69,7 @@ function actionRegister(p) {
 function actionFindByWA(p) { const wa=normWa((p&&p.wa)||''); const rows=readAll(); const rec=rows.find(r=> normWa(r.wa)===wa); return { ok:true, rec: rec||null }; }
 function actionGetTicket(p) {
   const q=String((p&&p.q)||'').trim(); const rows=readAll(); let rec=null;
-  if (/^RMPMABA-/i.test(q)) { const qc=q.toUpperCase(); rec = rows.find(r => String(r.code||'').toUpperCase()===qc); }
+  if (/^GTFLOW-/i.test(q)) { const qc=q.toUpperCase(); rec = rows.find(r => String(r.code||'').toUpperCase()===qc); }
   else { const wa=normWa(q); rec = rows.find(r => normWa(r.wa)===wa) || rows.find(r => String(r.code||'').toUpperCase()===q.toUpperCase()); }
   return { ok:true, rec: rec||null };
 }
@@ -87,7 +87,7 @@ function actionDelete(p){ if(!p||!p.id) return { ok:false, error:'missing id' };
 function actionInfo(){ const ss=SpreadsheetApp.getActiveSpreadsheet(); const sh=getSheet(); const rows=readAll(); return { ok:true, spreadsheetUrl:ss.getUrl(), sheetName:sh.getName(), rowCount:rows.length, sample:rows.slice(0,5) }; }
 
 /** ====== UTIL ====== */
-function genCode(){ const rows=readAll(); let code; do { const p=Math.random().toString(36).slice(2,6).toUpperCase(); const t=Date.now().toString().slice(-5); code=`RMPMABA-${p}${t}`; } while (rows.some(r => String(r.code||'')===code)); return code; }
+function genCode(){ const rows=readAll(); let code; do { const p=Math.random().toString(36).slice(2,6).toUpperCase(); const t=Date.now().toString().slice(-5); code=`GTFLOW-${p}${t}`; } while (rows.some(r => String(r.code||'')===code)); return code; }
 function saveDataUrlToDrive(dataUrl, fileNameBase){ const m=String(dataUrl).match(/^data:([^;]+);base64,(.+)$/); if(!m) throw new Error('invalid dataUrl'); const mime=m[1]; const bytes=Utilities.base64Decode(m[2]); const ext=extFromMime(mime); const fileName=fileNameBase+ext; const blob=Utilities.newBlob(bytes, mime, fileName); const folder=getOrCreateFolder(PROOF_FOLDER); const file=folder.createFile(blob); file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); return file.getUrl(); }
 function extFromMime(mime){ if(/png/i.test(mime)) return '.png'; if(/jpe?g/i.test(mime)) return '.jpg'; if(/pdf/i.test(mime)) return '.pdf'; return ''; }
 function getOrCreateFolder(name){ const it=DriveApp.getFoldersByName(name); return it.hasNext()?it.next():DriveApp.createFolder(name); }

@@ -1,64 +1,208 @@
+/* ========= styles.css — LIGHT + LEBIH BERWARNA (FULL, drop-in) =========
+   Pasang file ini, tidak perlu ubah HTML. Semua override via !important.
+   - Body putih (NO dark)
+   - Navbar gradasi
+   - Hero & Form berwarna
+   - Setiap section punya palet sendiri (emerald, indigo, amber)
+   - Popup success ala iOS/Android (ok|warn|err|info)
+*/
+
+/* ---------- Tokens ---------- */
 :root{
-  --brand:#22d3ee;
-  --accent:#a78bfa;
+  --brand:#22d3ee;   /* cyan */
+  --accent:#a78bfa;  /* violet */
+  --ink:#0f172a;     /* slate-900 */
+  --muted:#475569;
+  --border:rgba(2,6,23,.12);
+  --shadow:0 12px 30px rgba(2,6,23,.10);
+
+  /* anim pack */
+  --trans-perspective:1100px;
+  --trans-dur-in:.55s;
+  --trans-dur-out:.38s;
+
+  /* popup gradients */
+  --ok-g1:#34d399;  --ok-g2:#059669;
+  --warn-g1:#f59e0b;--warn-g2:#d97706;
+  --err-g1:#f43f5e; --err-g2:#e11d48;
+  --info-g1:#22d3ee;--info-g2:#0ea5e9;
 }
 
-/* ---------- Base ---------- */
+/* ---------- Base (force light) ---------- */
 *{ box-sizing:border-box }
+html,body{ background:#ffffff !important; color:var(--ink) !important; }
+.hr,.divider{ height:1px; background:var(--border) !important; }
 
-/* Section show/hide anim */
-.section{ transition:opacity .18s ease, transform .18s ease; }
-.section.hidden{ opacity:0; transform:translateY(8px); display:none; }
+/* Matikan sisa tema gelap Tailwind */
+.bg-slate-950,.bg-slate-900,.bg-neutral-900,.bg-black,
+.text-white,.text-slate-200,.text-slate-300,.text-slate-400,
+.bg-slate-800\/70{ background:transparent !important; color:inherit !important; }
+.border-white\/10{ border-color:var(--border) !important; }
+.ring-white\/10{ --tw-ring-color: var(--border) !important; }
+.bg-white\/5,.bg-black\/\[\.05\],.bg-slate-800\/\[\.05\]{ background:#ffffff !important; }
 
-/* Badges */
-.badge{ display:inline-block; padding:.125rem .5rem; border-radius:.5rem; font-size:.75rem; background:#0b1220; }
-.badge.ok{   background:rgba(16,185,129,.18); color:#a7f3d0; }
-.badge.warn{ background:rgba(251,191,36,.18); color:#fde68a; }
+/* ---------- NAVBAR (lebih berwarna) ---------- */
+header.sticky{
+  background:linear-gradient(90deg,#22d3ee 0%, #a78bfa 40%, #22d3ee 100%) !important;
+  border-bottom:1px solid rgba(255,255,255,.35) !important;
+  color:#0b1220 !important;
+}
+.nav-btn{
+  position:relative; overflow:hidden;
+  color:#0b1220 !important;
+  background:rgba(255,255,255,.92) !important;
+  border:1px solid var(--border) !important;
+  border-radius:999px !important;
+  padding:.45rem .8rem !important;
+  transition:transform .15s ease, filter .15s ease;
+}
+.nav-btn:hover,
+.nav-btn[aria-current="page"]{ filter:brightness(1.06) saturate(1.08); transform:translateY(-1px); }
+.nav-btn::after{
+  content:""; position:absolute; left:12%; right:12%; bottom:.3rem; height:2px;
+  background:linear-gradient(90deg,var(--brand),var(--accent)); border-radius:2px;
+  transform:scaleX(0); transform-origin:center; transition:transform .22s ease;
+}
+.nav-btn:hover::after, .nav-btn[aria-current="page"]::after{ transform:scaleX(1); }
 
-/* ---------- (Legacy) Ticket card HTML mode ---------- */
+/* ---------- HERO (warna brand lembut) ---------- */
+#section-hero{
+  background:
+    radial-gradient(600px 400px at 18% 20%, rgba(34,211,238,.20), transparent 60%),
+    radial-gradient(640px 420px at 82% 25%, rgba(167,139,250,.18), transparent 60%),
+    #ffffff !important;
+  border:1px solid var(--border) !important;
+  box-shadow:var(--shadow) !important;
+  color:var(--ink) !important;
+}
+#section-hero h2{
+  background:linear-gradient(90deg,var(--brand),var(--accent));
+  -webkit-background-clip:text; background-clip:text; color:transparent !important;
+}
+#section-hero img{
+  background:#fff; border:1px solid var(--border); border-radius:16px;
+  box-shadow:0 10px 24px rgba(2,6,23,.10); object-fit:contain;
+}
+
+/* ---------- FORM PENDAFTARAN (cyan→violet) ---------- */
+#section-register{
+  background:
+    linear-gradient(180deg, rgba(34,211,238,.14), rgba(167,139,250,.12) 60%, rgba(255,255,255,.98) 100%),
+    #ffffff !important;
+  border:1px solid rgba(34,211,238,.28) !important;
+  box-shadow:var(--shadow) !important;
+}
+#section-register input,#section-register select,#section-register textarea{
+  background:#fff !important; color:var(--ink) !important; border:1px solid #e2e8f0 !important;
+}
+#section-register input::placeholder,#section-register textarea::placeholder{ color:#94a3b8 !important; }
+#section-register input:focus,#section-register select:focus,#section-register textarea:focus{
+  border-color:#22d3ee !important; box-shadow:0 0 0 4px rgba(34,211,238,.20) !important;
+}
+#section-register button[type="submit"]{
+  background:linear-gradient(180deg,#22d3ee,#06b6d4) !important;
+  color:#fff !important; border:1px solid var(--border) !important; border-radius:.75rem !important;
+}
+#section-register button[type="reset"]{
+  background:#fff !important; color:var(--ink) !important;
+  border:1px solid var(--border) !important; border-radius:.75rem !important;
+}
+
+/* ---------- Pembayaran: emerald→cyan ---------- */
+#section-pay .bg-white\/5{
+  background:
+    linear-gradient(180deg, rgba(16,185,129,.16), rgba(34,211,238,.12) 70%, #fff 100%),
+    #fff !important;
+  border:1px solid rgba(16,185,129,.28) !important;
+  box-shadow:var(--shadow) !important; color:var(--ink) !important;
+}
+#section-pay input, #section-pay select, #section-pay textarea{
+  background:#fff !important; border:1px solid #e2e8f0 !important; color:var(--ink) !important;
+}
+#section-pay input:focus, #section-pay select:focus, #section-pay textarea:focus{
+  border-color:#10b981 !important; box-shadow:0 0 0 4px rgba(16,185,129,.18) !important;
+}
+#section-pay button{
+  background:linear-gradient(180deg,#10b981,#22d3ee) !important;
+  color:#fff !important; border:1px solid var(--border) !important;
+}
+
+/* ---------- E-Tiket: indigo→violet ---------- */
+#section-ticket .bg-white\/5{
+  background:
+    linear-gradient(180deg, rgba(99,102,241,.16), rgba(167,139,250,.12) 70%, #fff 100%),
+    #fff !important;
+  border:1px solid rgba(99,102,241,.28) !important;
+  box-shadow:var(--shadow) !important; color:var(--ink) !important;
+}
+#section-ticket input, #section-ticket select, #section-ticket textarea{
+  background:#fff !important; border:1px solid #e2e8f0 !important; color:var(--ink) !important;
+}
+#section-ticket input:focus, #section-ticket select:focus, #section-ticket textarea:focus{
+  border-color:#6366f1 !important; box-shadow:0 0 0 4px rgba(99,102,241,.18) !important;
+}
+#section-ticket button{
+  background:linear-gradient(180deg,#6366f1,#a78bfa) !important;
+  color:#fff !important; border:1px solid var(--border) !important;
+}
+
+/* ---------- Admin: amber→rose ---------- */
+#section-admin .bg-white\/5,
+#admin-login.bg-white\/5{
+  background:
+    linear-gradient(180deg, rgba(245,158,11,.18), rgba(244,63,94,.12) 70%, #fff 100%),
+    #fff !important;
+  border:1px solid rgba(245,158,11,.30) !important;
+  box-shadow:var(--shadow) !important; color:var(--ink) !important;
+}
+#section-admin input, #section-admin select, #section-admin textarea{
+  background:#fff !important; border:1px solid #e2e8f0 !important; color:var(--ink) !important;
+}
+#section-admin input:focus, #section-admin select:focus, #section-admin textarea:focus{
+  border-color:#f59e0b !important; box-shadow:0 0 0 4px rgba(245,158,11,.20) !important;
+}
+#section-admin button{
+  background:linear-gradient(180deg,#f59e0b,#f43f5e) !important;
+  color:#fff !important; border:1px solid var(--border) !important;
+}
+#section-admin thead.sticky{ background:#fff !important; border-bottom:1px solid var(--border) !important; }
+#section-admin th,#section-admin td{ color:var(--ink) !important; }
+
+/* ---------- Badges ---------- */
+.badge{
+  display:inline-block; padding:.125rem .5rem; border-radius:.5rem; font-size:.75rem;
+  background:#fff; border:1px solid var(--border); color:var(--muted);
+}
+.badge.ok{   background:#d1fae5; color:#065f46; border-color:#34d399; }
+.badge.warn{ background:#fef3c7; color:#92400e; border-color:#f59e0b; }
+
+/* ---------- Ticket (HTML mode) ---------- */
 .ticket{
-  position:relative;
-  border-radius:16px;
-  border:1px dashed rgba(255,255,255,.2);
+  position:relative; border-radius:16px; border:1px dashed var(--border);
   background:linear-gradient(135deg,rgba(34,211,238,.07),rgba(167,139,250,.07));
-  overflow:hidden;
+  overflow:hidden; box-shadow:var(--shadow);
 }
 .ticket .stripe{ position:absolute; inset:auto 0 0 0; height:6px; background:linear-gradient(90deg,var(--brand),var(--accent)); }
 .ticket .ticket-inner{ display:grid; grid-template-columns:1fr 200px; gap:16px; padding:20px; }
-.ticket .title{ font-weight:800; font-size:20px; }
-.ticket .meta{ color:#cbd5e1; }
-.qr-wrap{
-  width:160px; height:160px;                 /* diperkecil */
-  display:grid; place-items:center;
-  border-radius:12px; background:#fff;
-  border:1px solid rgba(255,255,255,.08);
-}
+.ticket .title{ font-weight:800; font-size:20px; color:var(--ink); }
+.ticket .meta{ color:var(--muted); }
+.qr-wrap{ width:160px; height:160px; display:grid; place-items:center; border-radius:12px; background:#fff; border:1px solid var(--border); }
 
-/* ---------- Canvas Ticket (mode baru) ---------- */
+/* ---------- Canvas Ticket ---------- */
 #ticket-wrap{ text-align:center; }
 #ticket-canvas{
-  display:block;
-  width:100%;
-  max-width:900px;  /* batas lebar di layar besar */
-  height:auto;
-  border-radius:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,.35);
-  border:1px solid rgba(255,255,255,.08);
+  display:block; width:100%; max-width:900px; height:auto; border-radius:16px;
+  box-shadow:var(--shadow); border:1px solid var(--border); background:#fff;
 }
 
-/* ---------- Skeleton / Loading ---------- */
+/* ---------- Skeleton ---------- */
 .skeleton{
-  background:linear-gradient(90deg,#1f2937 0,#334155 50%,#1f2937 100%);
-  background-size:200% 100%;
-  border-radius:8px;
-  animation:skeleton 1.2s ease-in-out infinite;
+  background:linear-gradient(90deg,#e5e7eb 0,#f3f4f6 50%,#e5e7eb 100%);
+  background-size:200% 100%; border-radius:8px; animation:skeleton 1.2s ease-in-out infinite;
 }
-@keyframes skeleton{
-  0%{ background-position:200% 0 }
-  100%{ background-position:-200% 0 }
-}
+@keyframes skeleton{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-/* ---------- Spinner (overlay) ---------- */
+/* ---------- Spinner ---------- */
 .segmented{
   width:22px; height:22px; border-radius:50%;
   background:conic-gradient(from 0deg, rgba(34,211,238,.9) 0 12%, transparent 12% 25%);
@@ -69,189 +213,133 @@
 .segmented.large{ width:56px; height:56px; }
 @keyframes spin{ to{ transform:rotate(360deg) } }
 
-/* ---------- Overlay & Popup ---------- */
-.overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:grid; place-items:center; z-index:60; }
+/* ---------- Overlay & Popup (light base) ---------- */
+.overlay{ position:fixed; inset:0; background:rgba(2,6,23,.25); display:grid; place-items:center; z-index:60; }
 .overlay-box{
-  width:min(92vw,460px);
-  border-radius:16px; padding:24px;
-  background:#0b1220;
-  border:1px solid rgba(255,255,255,.08);
+  width:min(92vw,460px); border-radius:16px; padding:24px;
+  background:#fff; border:1px solid var(--border); box-shadow:var(--shadow);
 }
 .popup{ position:fixed; inset:0; display:grid; place-items:center; z-index:70; pointer-events:none; }
 .popup-box{
-  width:min(88vw,380px);
-  border-radius:16px; padding:20px;
-  background:#0b1220;
-  border:1px solid rgba(255,255,255,.08);
+  width:min(88vw,380px); border-radius:16px; padding:20px;
+  background:#fff; border:1px solid var(--border); box-shadow:var(--shadow);
 }
-.popup-icon{ width:42px; height:42px; border-radius:50%; }
-.popup-icon.ok{   background:radial-gradient(circle at 30% 30%,#34d399,#065f46); }
-.popup-icon.warn{ background:radial-gradient(circle at 30% 30%,#f59e0b,#7c2d12); }
-.popup-icon.err{  background:radial-gradient(circle at 30% 30%,#ef4444,#7f1d1d); }
+#popup-title{ color: var(--ink) !important; }
+#popup-sub{ color: #64748b !important; } /* slate-500 */
+
+/* ---------- Popup iOS/Android Success Badge ---------- */
+.popup.badge-in .popup-box{
+  opacity:0; transform: translateY(12px) scale(.98);
+  animation: popSheet .36s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes popSheet{
+  70% { opacity:1; transform: translateY(-2px) scale(1.01); }
+  100%{ opacity:1; transform: translateY(0)    scale(1); }
+}
+/* ukuran ikon + glow default */
+#popup-icon svg{ width:48px; height:48px; display:block }
+.icon-glow{ filter: drop-shadow(0 6px 18px rgba(16,185,129,.35)); }
+
+/* glow per jenis */
+.popup-icon.ok   .icon-glow{ filter: drop-shadow(0 6px 18px rgba(16,185,129,.35)); }
+.popup-icon.warn .icon-glow{ filter: drop-shadow(0 6px 18px rgba(245,158,11,.35)); }
+.popup-icon.err  .icon-glow{ filter: drop-shadow(0 6px 18px rgba(244,63,94,.35)); }
+.popup-icon.info .icon-glow{ filter: drop-shadow(0 6px 18px rgba(14,165,233,.35)); }
+
+/* centang tergambar */
+@keyframes drawTick { to{ stroke-dashoffset:0 } }
+.tick-mark{
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: drawTick .5s ease .12s forwards;
+}
+/* override gradien via CSS (kalau SVG pakai id 'succGrad') */
+.popup-icon.warn svg defs linearGradient stop:first-child{ stop-color: var(--warn-g1) }
+.popup-icon.warn svg defs linearGradient stop:last-child { stop-color: var(--warn-g2) }
+.popup-icon.err  svg defs linearGradient stop:first-child{ stop-color: var(--err-g1) }
+.popup-icon.err  svg defs linearGradient stop:last-child { stop-color: var(--err-g2) }
+.popup-icon.info svg defs linearGradient stop:first-child{ stop-color: var(--info-g1) }
+.popup-icon.info svg defs linearGradient stop:last-child { stop-color: var(--info-g2) }
+
+/* pulse ring lembut */
+.popup-icon{ position:relative; }
+.popup-icon::after{
+  content:""; position:absolute; inset:-8px; border-radius:50%;
+  background: radial-gradient(circle, rgba(2,6,23,.12), rgba(2,6,23,0));
+  animation: pulseRing .9s ease-out 1 both;
+}
+@keyframes pulseRing{
+  0%  { transform: scale(.8); opacity:.25; }
+  100%{ transform: scale(1.4); opacity:0; }
+}
 
 /* ---------- Mobile tweaks (≤640px) ---------- */
 @media (max-width:640px){
-  /* Header: judul sejajar ikon, tombol pindah ke baris bawah (sudah di HTML dengan flex-col).
-     Di sini kita pastikan spacing & center rapi. */
-  header .max-w-6xl > .w-full{
-    justify-content:center;
-  }
+  header .max-w-6xl > .w-full{ justify-content:center; }
+  #section-ticket .bg-white\/5 > div, #admin-login .max-w-sm{ max-width:28rem; margin-inline:auto; }
+  #t-find,#t-download,#admin-enter{ width:100%; }
 
-  /* Pencarian tiket & login admin center (sudah mx-auto di HTML),
-     tambahkan sedikit batas lebar agar tidak terlalu melebar. */
-  #section-ticket .bg-white\/5 > div,
-  #admin-login .max-w-sm{
-    max-width: 28rem;
-    margin-inline: auto;
-  }
-
-  /* Tombol aksi di blok tiket & login full width biar gampang di-tap */
-  #t-find,
-  #t-download,
-  #admin-enter{
-    width:100%;
-  }
+  /* Logo hero kotak tegas di HP */
+  #section-hero img{ border-radius:0 !important; }
 }
 
+/* (opsional) rounded di layar ≥641px */
+@media (min-width:641px){
+  #section-hero img{ border-radius:16px; }
+}
 
-/* === Animations & Transitions Add-on (non-destructive) === */
+/* ---------- Animations & Transitions (route) ---------- */
 #route-veil{
-  position: fixed; inset: 0;
-  pointer-events: none;
+  position:fixed; inset:0; pointer-events:none;
   background:
     radial-gradient(1200px 800px at 20% 20%, rgba(34,211,238,.14), transparent 60%),
     radial-gradient(900px 700px at 80% 25%, rgba(167,139,250,.12), transparent 60%),
-    linear-gradient(135deg, rgba(2,6,23,.8), rgba(2,6,23,.92));
-  transform-origin: left center;
-  transform: scaleX(0);
-  transition: transform .28s ease;
-  z-index: 80;
+    linear-gradient(135deg, rgba(2,6,23,.05), rgba(2,6,23,.1));
+  transform-origin:left center; transform:scaleX(0); transition:transform .28s ease; z-index:80;
 }
-#route-veil.veil-in{ transform: scaleX(1); }
-#route-veil.veil-out{ transform: scaleX(0); }
+#route-veil.veil-in{ transform:scaleX(1); }
+#route-veil.veil-out{ transform:scaleX(0); }
 
-/* Route enter/leave keyframes (used by JS) */
-@keyframes routeIn {
-  from{ opacity:0; transform: translateY(10px) scale(.98); }
-  to  { opacity:1; transform: translateY(0)    scale(1); }
-}
-@keyframes routeOut {
-  from{ opacity:1; transform: translateY(0)    scale(1); }
-  to  { opacity:0; transform: translateY(-8px) scale(.985); }
-}
+@keyframes routeIn{ from{opacity:0; transform: translateY(10px) scale(.98);} to{opacity:1; transform: translateY(0) scale(1);} }
+@keyframes routeOut{ from{opacity:1; transform: translateY(0) scale(1);} to{opacity:0; transform: translateY(-8px) scale(.985);} }
 .section.route-enter{ animation: routeIn .34s cubic-bezier(.2,.7,.2,1) both; }
 .section.route-leave{ animation: routeOut .22s ease both; }
 
-/* Reveal on scroll */
-.reveal{ opacity:0; transform: translateY(10px); }
-.reveal-in{ opacity:1; transform: none; transition: opacity .5s ease, transform .5s ease; }
-
-/* Floaty micro-animation */
-@keyframes floatyKey {
-  0% { transform: translateY(0) }
-  50%{ transform: translateY(-6px) }
-  100%{ transform: translateY(0) }
+/* Ripple */
+.rpl{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.rpl span{
+  position:absolute; border-radius:50%; width:12px; height:12px; opacity:.24;
+  background: radial-gradient(circle, rgba(0,0,0,.35), rgba(0,0,0,0) 60%);
+  transform: translate(-50%, -50%) scale(1); animation: rpl .7s ease-out forwards;
 }
-.floaty{ animation: floatyKey 4s ease-in-out infinite; will-change: transform; }
+@keyframes rpl{ to{ transform: translate(-50%, -50%) scale(35); opacity:0; } }
 
-/* Button micro interaction (opt-in via 'active' state) */
+/* Floaty + micro interaction */
+@keyframes floatyKey{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+.floaty{ animation: floatyKey 4s ease-in-out infinite; will-change: transform; }
 button:active{ transform: translateY(1px) scale(.99); }
 
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce){
-  #route-veil{ transition: none }
-  .section.route-enter, .section.route-leave{ animation: none !important }
-  .reveal-in{ transition: none }
-  .floaty{ animation: none }
-}
+/* Route families */
+@keyframes cubeOut{from{opacity:1;transform:perspective(var(--trans-perspective)) rotateY(0) translateZ(0);}to{opacity:0;transform:perspective(var(--trans-perspective)) rotateY(-40deg) translateZ(-40px);}}
+@keyframes cubeIn{from{opacity:0;transform:perspective(var(--trans-perspective)) rotateY(40deg) translateZ(-40px);}to{opacity:1;transform:perspective(var(--trans-perspective)) rotateY(0) translateZ(0);}}
+body[data-trans="cube"] .section.route-enter{ animation:cubeIn var(--trans-dur-in) cubic-bezier(.2,.7,.2,1) both; }
+body[data-trans="cube"] .section.route-leave{ animation:cubeOut var(--trans-dur-out) ease both; }
 
-
-/* === Advanced Animations Pack === */
-/* Choose mode via <body data-trans="cube|parallax|curtain"> */
-:root{
-  --trans-perspective: 1100px;
-  --trans-dur-in: .55s;
-  --trans-dur-out: .38s;
-}
-
-/* Animated underline for nav chips */
-.nav-btn{
-  position: relative;
-  overflow: hidden;
-}
-.nav-btn::after{
-  content:"";
-  position:absolute; left:12%; right:12%; bottom:.25rem; height:2px;
-  background: linear-gradient(90deg, var(--brand), var(--accent));
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform .28s ease;
-  border-radius: 2px;
-}
-.nav-btn:hover::after, .nav-btn[aria-current="page"]::after{
-  transform: scaleX(1);
-}
-
-/* Ripple click (JS injects .rpl) */
-.rpl{
-  position:absolute; inset:0; pointer-events:none; overflow:hidden;
-}
-.rpl span{
-  position:absolute; border-radius:50%;
-  width:12px; height:12px; opacity:.24;
-  background: radial-gradient(circle, rgba(255,255,255,.75), rgba(255,255,255,0) 60%);
-  transform: translate(-50%, -50%) scale(1);
-  animation: rpl .7s ease-out forwards;
-}
-@keyframes rpl{
-  to{ transform: translate(-50%, -50%) scale(35); opacity:0; }
-}
-
-/* Magnetic hover: target elements add [data-magnetic] attribute; JS will transform */
-
-/* --- Route transition: CUBE (3D rotate) --- */
-@keyframes cubeOut{
-  from{ opacity:1; transform: perspective(var(--trans-perspective)) rotateY(0) translateZ(0); filter:blur(0) }
-  to  { opacity:0; transform: perspective(var(--trans-perspective)) rotateY(-40deg) translateZ(-40px); filter:blur(1px) }
-}
-@keyframes cubeIn{
-  from{ opacity:0; transform: perspective(var(--trans-perspective)) rotateY(40deg) translateZ(-40px); filter:blur(1px) }
-  to  { opacity:1; transform: perspective(var(--trans-perspective)) rotateY(0) translateZ(0); filter:blur(0) }
-}
-body[data-trans="cube"] .section.route-enter{ animation: cubeIn var(--trans-dur-in) cubic-bezier(.2,.7,.2,1) both; }
-body[data-trans="cube"] .section.route-leave{ animation: cubeOut var(--trans-dur-out) ease both; }
-
-/* --- Route transition: PARALLAX SLIDE --- */
-@keyframes slideParallaxOut{
-  from{ opacity:1; transform: translate3d(0,0,0) }
-  to  { opacity:0; transform: translate3d(-28px,0,0) }
-}
-@keyframes slideParallaxIn{
-  from{ opacity:0; transform: translate3d(28px,0,0) }
-  to  { opacity:1; transform: translate3d(0,0,0) }
-}
+@keyframes slideParallaxOut{ from{opacity:1; transform:translate3d(0,0,0);} to{opacity:0; transform:translate3d(-28px,0,0);} }
+@keyframes slideParallaxIn{ from{opacity:0; transform:translate3d(28px,0,0);} to{opacity:1; transform:translate3d(0,0,0);} }
 body[data-trans="parallax"] .section.route-enter{ animation: slideParallaxIn .52s cubic-bezier(.2,.7,.2,1) both; }
 body[data-trans="parallax"] .section.route-leave{ animation: slideParallaxOut .34s ease both; }
 
-/* --- Route transition: CURTAIN (diagonal clip) --- */
-#route-curtain{
-  position:fixed; inset:0; pointer-events:none; z-index:85;
-  background: linear-gradient(135deg, rgba(34,211,238,.22), rgba(167,139,250,.22) 35%, rgba(2,6,23,.95) 70%);
-  clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
-  transition: clip-path .5s cubic-bezier(.2,.7,.2,1);
+#route-curtain{ position:fixed; inset:0; pointer-events:none; z-index:85;
+  background: linear-gradient(135deg, rgba(34,211,238,.22), rgba(167,139,250,.22) 35%, rgba(255,255,255,.95) 70%);
+  clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transition: clip-path .5s cubic-bezier(.2,.7,.2,1);
 }
-#route-curtain.on{
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-}
-/* also fade sections a bit for curtain */
-body[data-trans="curtain"] .section.route-enter{ animation: routeIn .42s cubic-bezier(.2,.7,.2,1) both; }
-body[data-trans="curtain"] .section.route-leave{ animation: routeOut .28s ease both; }
+#route-curtain.on{ clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
 
-/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce){
   .nav-btn::after{ transition:none }
   .rpl span{ animation:none }
-  #route-curtain{ transition:none }
+  #route-curtain,#route-veil{ transition:none }
   body[data-trans="cube"] .section.route-enter,
   body[data-trans="cube"] .section.route-leave,
   body[data-trans="parallax"] .section.route-enter,
@@ -259,3 +347,11 @@ body[data-trans="curtain"] .section.route-leave{ animation: routeOut .28s ease b
   body[data-trans="curtain"] .section.route-enter,
   body[data-trans="curtain"] .section.route-leave{ animation:none !important }
 }
+
+/* ---------- Placeholder Animations ---------- */
+@keyframes anim-blank-1 {}
+@keyframes anim-blank-2 {}
+@keyframes anim-blank-3 {}
+.anim-blank-1{ animation: anim-blank-1 1s ease-in-out infinite; }
+.anim-blank-2{ animation: anim-blank-2 1.2s linear infinite; }
+.anim-blank-3{ animation: anim-blank-3 1.6s ease infinite; }

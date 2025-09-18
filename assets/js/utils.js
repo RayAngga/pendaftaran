@@ -54,12 +54,16 @@ export function hideOverlay() {
   clearTimeout(window.__ovCancelTimer);
 }
 
-// Popup: sub mendukung HTML
-export function showPopup(kind = "ok", title = "Selesai", sub = "") {
+// ==== GANTI fungsi showPopup-mu dengan ini ====
+export function showPopup(kind = "ok", title = "Selesai", sub = "", duration = 1800) {
   const p = el("popup"); if (!p) return;
 
+  // ikon iOS badge (SVG disuntik)
   const icon = el("popup-icon");
-  if (icon) icon.className = "popup-icon " + kind;
+  if (icon) {
+    icon.className = "popup-icon " + kind;
+    icon.innerHTML = buildBadge(kind);
+  }
 
   const tt = el("popup-title");
   if (tt) tt.textContent = String(title ?? "");
@@ -67,11 +71,54 @@ export function showPopup(kind = "ok", title = "Selesai", sub = "") {
   const ss = el("popup-sub");
   if (ss) {
     const txt = String(sub ?? "");
-    if (/<[a-z][\s\S]*>/i.test(txt)) ss.innerHTML = txt; // render HTML
-    else ss.textContent = txt;
+    if (/<[a-z][\s\S]*>/i.test(txt)) ss.innerHTML = txt; else ss.textContent = txt;
   }
 
-  p.classList.remove("hidden");
+  // tampil + retrigger animasi
+  p.classList.remove("hidden","badge-in");
+  void p.offsetWidth;               // force reflow agar animasi bisa diputar ulang
+  p.classList.add("badge-in");
+
   clearTimeout(window.__popTimer);
-  window.__popTimer = setTimeout(() => p.classList.add("hidden"), 1800);
+  window.__popTimer = setTimeout(() => {
+    p.classList.add("hidden");
+    p.classList.remove("badge-in");
+  }, duration);
+}
+
+// (opsional) expose ke global supaya bisa dipanggil dari console
+window.showPopup = showPopup;
+
+// ==== Tambahkan helper ini (sekali saja) ====
+const BADGE_ICONS = {
+  ok:   { g1:'#34d399', g2:'#059669', tick:'#fff' }, // emerald
+  warn: { g1:'#f59e0b', g2:'#d97706', tick:'#fff' }, // amber
+  err:  { g1:'#f43f5e', g2:'#e11d48', tick:'#fff' }, // rose
+  info: { g1:'#22d3ee', g2:'#0ea5e9', tick:'#fff' }, // cyan
+};
+
+function buildBadge(kind='ok'){
+  const c = BADGE_ICONS[kind] || BADGE_ICONS.ok;
+  return `
+  <svg viewBox="0 0 48 48" aria-hidden="true" class="icon-glow" fill="none">
+    <defs>
+      <linearGradient id="succGrad" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+        <stop stop-color="${c.g1}"/><stop offset="1" stop-color="${c.g2}"/>
+      </linearGradient>
+    </defs>
+    <circle cx="24" cy="24" r="20" fill="url(#succGrad)"/>
+    <path class="tick-mark" d="M16 24.5 L22 30.5 L33.5 18.5"
+          stroke="${c.tick}" stroke-width="4" stroke-linecap="round"
+          stroke-linejoin="round" fill="none"/>
+  </svg>`;
+}
+
+let __lastPopupTs = 0;
+const POPUP_MIN_INTERVAL = 2000; // 2 detik
+
+function showPopupThrottled(kind='ok', title='Selesai', sub='', duration=1800){
+  const now = Date.now();
+  if (now - __lastPopupTs < POPUP_MIN_INTERVAL) return; // skip jika terlalu cepat
+  __lastPopupTs = now;
+  showPopup(kind, title, sub, duration);
 }
