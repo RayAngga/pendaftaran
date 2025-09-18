@@ -31,7 +31,7 @@ function doPost(e) {
 function jsonOut(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
 
 /** ====== SHEET HELPERS ====== */
-const HEADERS = ['id','createdAt','nama','fakultas','prodi','wa','makanan','domisili','paid','attended','code','proofUrl'];
+const HEADERS = ['id','createdAt','nama','fakultas','prodi','wa','domisili','paid','attended','code','proofUrl'];
 
 function getSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
