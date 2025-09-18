@@ -5,7 +5,7 @@
 // - Timeout bawaan 15s (bisa diubah via argumen call(..., { timeout }))
 
 const API_URL = "/api/appscript";
-const DEFAULT_TIMEOUT = 15000; // 15s
+const DEFAULT_TIMEOUT = 25000; // 15s
 
 function fail(msg, extra) {
   const err = new Error(msg);
