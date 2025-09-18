@@ -258,29 +258,30 @@
             <div class="text-sm text-slate-400">Total Hadir</div>
             <div id="stat-hadir" class="text-2xl font-extrabold">0</div>
           </div>
-          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
-            <div class="text-sm text-slate-400">Sisa Kuota</div>
-            <div id="stat-kuota" class="text-2xl font-extrabold">0</div>
-          </div>
-        </div>
+<div class="grid md:grid-cols-2 gap-4">
+  <div class="rounded-xl p-4 bg-white/5 border border-white/10">
+    <div class="flex items-center justify-between">
+      <h4 class="font-semibold">Scan QR</h4>
+      <div class="flex gap-2">
+        <button id="scan-start" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20">Mulai</button>
+        <button id="scan-stop"  class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20">Stop</button>
+      </div>
+    </div>
 
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="rounded-xl p-4 bg-white/5 border border-white/10">
-            <div class="flex items-center justify-between">
-              <h4 class="font-semibold">Scan QR</h4>
-              <div class="flex gap-2">
-                <button id="scan-start" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20">Mulai</button>
-                <button id="scan-stop" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20">Stop</button>
-              </div>
-            </div>
-            <div class="mt-3 space-y-2">
-              <div class="aspect-video bg-black/60 rounded-lg border border-white/10 grid place-items-center overflow-hidden">
-                <video id="scan-video" class="w-full h-full object-cover" playsinline muted autoplay></video>
-              </div>
-              <p id="scan-msg" class="text-sm text-slate-400">Belum aktif.</p>
-              <div id="scan-result" class="text-sm"></div>
-            </div>
-          </div>
+    <div class="mt-3 space-y-2">
+      <!-- UBAH KE PERSEGI -->
+      <div id="scan-box" class="relative aspect-square bg-black/60 rounded-lg border border-white/10 overflow-hidden">
+        <video id="scan-video" class="absolute inset-0 w-full h-full object-cover" playsinline muted autoplay></video>
+        <!-- (opsional) kanvas untuk decoding -->
+        <canvas id="scan-canvas" class="absolute inset-0 w-full h-full"></canvas>
+      </div>
+
+      <p id="scan-msg" class="text-sm text-slate-400">Belum aktif.</p>
+      <div id="scan-result" class="text-sm"></div>
+    </div>
+  </div>
+</div>
+
 
           <div class="rounded-xl p-4 bg-white/5 border border-white/10">
             <div class="flex flex-col md:flex-row gap-3 items-end md:items-center">
