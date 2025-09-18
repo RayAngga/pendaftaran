@@ -65,7 +65,7 @@ export async function buildTicketImage(rec, opt = {}) {
   ctx.textBaseline = "top";
   ctx.fillStyle = "#e7eef7";
   ctx.font = `${TITLE_WEIGHT} ${TITLE_SIZE}px system-ui, -apple-system, Segoe UI, Roboto, Ubuntu`;
-  ctx.fillText("GROW TOGETHER FLOW TOGETHER MABA — E-Ticket", LEFT, y);
+  ctx.fillText("GROW TOGETHER FLOW TOGETHER — E-Ticket", LEFT, y);
 
   const titleBottom = titleTop + TITLE_SIZE;
   y = titleBottom + TITLE_GAP;
